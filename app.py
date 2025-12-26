@@ -176,26 +176,22 @@ class PSPDoc(object):
             print(f'[:ERROR:] NOT PROPER DOC HEADER')
             return None
         
+        # if sliceBuf(header_out, 0x4, 0x8) != b'\0\0\1\0\0\0\1\0':
+        #     print(f'[:ERROR:] BAD FILE VERSION ID')
+        #     return None
+        
         self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
         self.data.header.version = sliceBuf(header_out, 0x0004, 0x0008).hex()
         self.data.header.code    = sliceBuf(header_out, 0x000c, 0x0010).decode('utf-8').rstrip('\0')
         
-        pages_count = self.f_dat[0x00a0:0x00a8]
-        pages_count = desDecrypt(dec_key, pages_count)
-        
-        if pages_count[0x00:0x04] != bytes.fromhex('FFFFFFFF'):
-            print('[:ERROR:] MARKER MISMATCH')
-            return None
-        
-        self.data.header.pages_total = b2i(pages_count[0x04:0x08])
+        self.data.header.pages_total = 0
         self.data.header.pages_total_ps3 = 0
-        self.data.header.page_limit  = 99 
         
-        # offset for page 1 if < 100: 0x32b8
-        # offset for page 1 if > 99 : 0x1f4b8
+        self.data.header.page_limit  = b2i(sliceBuf(header_out, 0x001c, 0x0004))
+        self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
+        
         metadata_size = 0x32b8 - 0x00a0 - 0x0030
-        if self.data.header.pages_total > 99:
-            self.data.header.page_limit = 999
+        if self.data.header.page_limit > 99:
             metadata_size = 0x1f4b8 - 0x00a0 - 0x0030
         
         check_metadata_psp = sha1hmac(HMAC_KEY_PSP, self.f_dat[0x00a0:0x00a0+metadata_size])
@@ -206,15 +202,24 @@ class PSPDoc(object):
             print(f'[:ERROR:] PADDING AT 0x{sum_metadata_offset:08x} IS MISSING.')
             return None
         
-        if check_metadata_psp != sliceBuf(self.f_dat, sum_metadata_offset + 0x10, 0x10) or check_metadata_ps3 != sliceBuf(self.f_dat, sum_metadata_offset + 0x20, 0x10):
+        if (
+            check_metadata_psp != sliceBuf(self.f_dat, sum_metadata_offset + 0x10, 0x10) 
+            or check_metadata_ps3 != sliceBuf(self.f_dat, sum_metadata_offset + 0x20, 0x10)
+        ):
             print(f'[:ERROR:] SHA1-HMAC METADATA MISMATCH.')
             return None
         
         pages_metadata = desDecrypt(dec_key, self.f_dat[0x00a0:0x00a0+metadata_size])
         
+        if sliceBuf(pages_metadata, 0x0, 0x4) != bytes.fromhex('FFFFFFFF'):
+            print('[:ERROR:] MARKER MISMATCH')
+            return None
+        
         ps3_pages_count_offset = 0x3188
-        if self.data.header.pages_total > 99:
+        if self.data.header.page_limit > 99:
             ps3_pages_count_offset = 0x1f388
+        
+        self.data.header.pages_total     = b2i(pages_metadata[0x04:0x08])
         self.data.header.pages_total_ps3 = b2i(sliceBuf(pages_metadata, ps3_pages_count_offset, 0x04))
         
         for i in range(self.data.header.pages_total):
