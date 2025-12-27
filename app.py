@@ -94,7 +94,7 @@ class PSPDoc(object):
             
             free_edata(self.f_edat)
             
-            print(' > NOT SUPPORTED YET, SKIPPING...')
+            print('  > NOT SUPPORTED YET, SKIPPING...')
             return None
         
         header = self.f_dat[0x00:0x10]

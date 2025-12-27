@@ -61,7 +61,6 @@ def kirk4(buf, size, type):
     
     if retv:
         print('  > kirk4 fail')
-        print('  > kirk4 fail')
         return 0x80510311
     
     return 0

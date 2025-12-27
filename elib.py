@@ -46,13 +46,13 @@ def free_edata(buf: bytes):
     ecdsa_verify = ecdsa.verify(sha1_hash, signature, pubkey)
     
     if not ecdsa_verify:
-        print('  edata_check_ecdsa: ECDSA verify failed!')
+        print('  > edata_check_ecdsa: ECDSA verify failed!')
         return None
     
     pgd_key = bytearray(16)
     cstr = buf[16:]
     
     get_key = sceNpDrmGetFixedKey(pgd_key, cstr, 0x01000000)
-    print(' > ', hex(get_key))
+    print('  > ERROR:', hex(get_key))
     
     return None

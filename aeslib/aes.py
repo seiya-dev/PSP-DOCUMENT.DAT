@@ -722,14 +722,14 @@ def rijndaelKeySetupEnc(rk, cipherKey, keyBits):
     if keyBits == 128:
         for i in range(10):
             temp = rk[3]
-            print(f"Debug: temp = {temp:08x}")  
+            # print(f"Debug: temp = {temp:08x}")  
             
             index1 = (temp >> 24) & 0xFF
             index2 = (temp >> 16) & 0xFF
             index3 = (temp >> 8) & 0xFF
             index4 = temp & 0xFF
             
-            print(f"Debug: Indices for Te4: {index1}, {index2}, {index3}, {index4}")
+            # print(f"Debug: Indices for Te4: {index1}, {index2}, {index3}, {index4}")
             
             if max(index1, index2, index3, index4) >= len(Te4):
                 print(f"Error: Invalid index for Te4. Indices: {index1}, {index2}, {index3}, {index4}")
