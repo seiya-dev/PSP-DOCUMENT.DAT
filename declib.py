@@ -54,6 +54,7 @@ def free_edata(name: str, buf: bytes):
         ofile.close()
     
     if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT'):
+        # TO DO PYTHON EXTRACTOR
         subprocess.run(['./app/pspdecrypt_mod.exe', f'./edat_out/{name}_DOCINFO.EDAT'])
     
     kfile = open(f'./edat_out/{name}_DOCINFO.EDAT.dec', 'rb')
