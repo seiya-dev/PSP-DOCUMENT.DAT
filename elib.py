@@ -3,10 +3,6 @@ import os
 import struct
 import hashlib
 from ecdsa import PSPECDSA
-from Crypto.Hash import CMAC
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-from aeslib.amctrl import MAC_KEY, sceNpDrmGetFixedKey
 
 ###################
 
@@ -46,13 +42,9 @@ def free_edata(buf: bytes):
     ecdsa_verify = ecdsa.verify(sha1_hash, signature, pubkey)
     
     if not ecdsa_verify:
-        print('  > edata_check_ecdsa: ECDSA verify failed!')
+        print('  > ECDSA verify failed!')
         return None
     
-    pgd_key = bytearray(16)
-    cstr = buf[16:]
-    
-    get_key = sceNpDrmGetFixedKey(pgd_key, cstr, 0x01000000)
-    print('  > ERROR:', hex(get_key))
+    print(hexdump(buf[0x80:]))
     
     return None
