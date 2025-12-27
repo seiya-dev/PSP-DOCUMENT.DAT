@@ -3,6 +3,8 @@ import os
 import struct
 import hashlib
 from ecdsa import PSPECDSA
+from pathlib import Path
+import subprocess
 
 ###################
 
@@ -27,13 +29,13 @@ def hexdump(data: bytes, start_offset: int = 0) -> str:
 
 ###################
 
-def free_edata(buf: bytes):
+def free_edata(name: str, buf: bytes):
     if buf[:0x08] != b'\x00PSPEDAT':
         return None
     
     ecdsa = PSPECDSA()
     edata_id = buf[0x10:].split(b'\x00', 1)[0].decode('utf-8', errors='ignore')
-    print(f"  EDATA ID: {edata_id}")
+    # print(f"  EDATA ID: {edata_id}")
     
     sha1_hash = hashlib.sha1(buf[:0x58]).digest()
     signature = buf[0x58:0x6c]
@@ -45,6 +47,16 @@ def free_edata(buf: bytes):
         print('  > ECDSA verify failed!')
         return None
     
-    print(hexdump(buf[0x80:]))
+    if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT'):
+        Path(f'./edat_out/').mkdir(parents=True, exist_ok=True)
+        ofile = open(f'./edat_out/{name}_DOCINFO.EDAT', 'wb')
+        ofile.write(buf[0x80:])
+        ofile.close()
     
-    return None
+    if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT'):
+        subprocess.run(['./app/pspdecrypt_mod.exe', f'./edat_out/{name}_DOCINFO.EDAT'])
+    
+    kfile = open(f'./edat_out/{name}_DOCINFO.EDAT.dec', 'rb')
+    binkey = kfile.read()
+    kfile.close()
+    return binkey

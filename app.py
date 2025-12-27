@@ -6,7 +6,7 @@ from io import BytesIO
 from pathlib import Path
 
 from Crypto.Cipher import DES
-from elib import free_edata, hexdump
+from declib import free_edata, hexdump
 
 ###################
 
@@ -92,10 +92,8 @@ class PSPDoc(object):
                 print('[:ERROR:] BAD DOCINFO.EDAT SIZE!')
                 return None
             
-            free_edata(self.f_edat)
-            
-            print('  > NOT SUPPORTED YET, SKIPPING...')
-            return None
+            dec_key = free_edata(self.data.file_info.name, self.f_edat)
+            dec_key = desChangeKey(dec_key)
         
         header = self.f_dat[0x00:0x10]
         if header != b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
