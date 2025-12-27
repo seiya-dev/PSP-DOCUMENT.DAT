@@ -1,80 +1,33 @@
 import os
 
 import hmac
-import struct
 import hashlib
 from io import BytesIO
 from pathlib import Path
-from Crypto.Cipher import DES
-from Crypto.Cipher import AES
 
-DOCINFO_EDAT_FORMAT = (
-    '<'      # little-endian
-    '8s'     # char magic[0x8]
-    'i'      # int key_index
-    'H'      # uint16_t data_offset
-    'B'      # uint8_t data_type
-    'B'      # uint8_t version
-    '48s'    # char content_id[0x30]
-    '16s'    # uint8_t key[0x10]
-    '8s'     # uint8_t pad[0x8]
-    '40s'    # uint8_t ecdsa_signature[0x28]
-    '192s'   # uint8_t pgd[0xC0]
-)
+from Crypto.Cipher import DES
+from elib import free_edata, hexdump
+
+###################
 
 HMAC_KEY_PSP = bytes([0x4D, 0x1B, 0x6B, 0x12, 0x69, 0xDD, 0xD2, 0x2F, 0xAA, 0xE1, 0xF5, 0x42, 0x07, 0xE7, 0x98, 0xB5])
 HMAC_KEY_PS3 = bytes([0xEF, 0x69, 0x0E, 0xC0, 0xE0, 0xBF, 0xA4, 0x1F, 0x08, 0x45, 0x5B, 0xD0, 0x38, 0xEB, 0x87, 0x62])
 DES_KEY = bytes([0xDA, 0x39, 0x23, 0xEF, 0x9C, 0x61, 0xB9, 0x30])
 DES_IV  = bytes([0x2D, 0xEE, 0x89, 0x50, 0x96, 0x91, 0x12, 0xD9])
 
+###################
+
 class attrdict(dict):
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
 
-def parse_docinfo_edat(edat):
-    fields = struct.unpack(DOCINFO_EDAT_FORMAT, edat)
-
-    data = attrdict()
-    data.info = {
-        'magic': fields[0].lstrip(b'\x00').decode('utf-8'),
-        'key_index': fields[1],
-        'data_offset': fields[2],
-        'data_type': fields[3],
-        'version': fields[4],
-        'content_id': fields[5].rstrip(b'\x00').decode('utf-8'),
-    }
-    
-    data.data = {
-        'key': fields[6],
-        # 'pad': fields[7],
-        # 'ecdsa_signature': fields[8],
-        'data_pgd': fields[9],
-    }
-    
-    return data
+###################
 
 def sliceBuf(buf, offset, length):
     return buf[offset:offset + length]
 
-def hexdump(data: bytes, start_offset: int = 0) -> str:
-    if start_offset < 0:
-        raise ValueError('start_offset must be >= 0')
-    
-    fmt = '{:08x}  {:23}  {:23}  |{:16}|'
-    base, pad, i, out = start_offset & ~0xF, start_offset & 0xF, 0, []
-    
-    hx = lambda bs: ' '.join(('  ' if b is None else f'{b:02x}') for b in bs).ljust(23)
-    asc = lambda bs: ''.join('.' if b is None else (chr(b) if 32 <= b <= 126 else '.') for b in bs)
-    
-    while i < len(data):
-        take = min(16 - pad, len(data) - i)
-        cells = [None] * pad + list(data[i:i + take]) + [None] * (16 - pad - take)
-        out.append(fmt.format(base, hx(cells[:8]), hx(cells[8:]), asc(cells)))
-        i, base, pad = i + take, base + 16, 0
-    
-    out.append(f'{start_offset + len(data):08x}')
-    return '\n'.join(out)
+###################
 
 def desDecrypt(key, input_data):
     cipher = DES.new(key, DES.MODE_CBC, DES_IV)
@@ -93,6 +46,8 @@ def b2i(input_data: bytes) -> int:
 
 def i2b(value: int, size: int) -> bytes:
     return value.to_bytes(size, byteorder='little')
+
+###################
 
 class PSPDoc(object):
     def __init__(self, file):
@@ -137,18 +92,7 @@ class PSPDoc(object):
                 print('[:ERROR:] BAD DOCINFO.EDAT SIZE!')
                 return None
             
-            # print(hexdump(self.f_edat))
-            # EDAT 0x80
-            # PGD  0xC0
-            
-            # edat = parse_docinfo_edat(self.f_edat)
-            # print(edat.info)
-            # print(hexdump(edat.data['key'], 0x40))
-            # print(hexdump(edat.data['data_pgd'], 0x70))
-            # dec_key = desChangeKey(bytes([0x22, 0x71, 0x82, 0xF2, 0x0E, 0x43, 0xA0, 0x8E]))
-            # print(hexdump(dec_key))
-            # print(hexdump(self.f_edat[0x0000:0x0080], 0x00))
-            # print(hexdump(self.f_edat[0x0080:0x0140], 0x80))
+            free_edata(self.f_edat)
             
             print(' > NOT SUPPORTED YET, SKIPPING...')
             return None
