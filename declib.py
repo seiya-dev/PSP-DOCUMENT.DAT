@@ -47,17 +47,23 @@ def free_edata(name: str, buf: bytes):
         print('  > ECDSA verify failed!')
         return None
     
-    if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT'):
-        Path(f'./edat_out/').mkdir(parents=True, exist_ok=True)
-        ofile = open(f'./edat_out/{name}_DOCINFO.EDAT', 'wb')
-        ofile.write(buf[0x80:])
-        ofile.close()
+    pgd_data = buf[0x80:]
+    # 0x00: 00 50 47 44 01 00 00 00  01 00 00 00 00 00 00 00
+    # 0x20: 5f d9 d2 e3 89 2c a7 f2  3c 48 d1 4f 18 d8 64 7e
     
-    if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT.dec'):
-        # TO DO PYTHON EXTRACTOR
-        subprocess.run(['./app/pspdecrypt_mod.exe', '-v', f'./edat_out/{name}_DOCINFO.EDAT'])
+    #if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT'):
+    Path(f'./edat_out/').mkdir(parents=True, exist_ok=True)
+    ofile = open(f'./edat_out/{name}_DOCINFO.EDAT', 'wb')
+    ofile.write(pgd_data)
+    ofile.close()
+    
+    #if not os.path.isfile(f'./edat_out/{name}_DOCINFO.EDAT.dec'):
+    # TO DO PYTHON EXTRACTOR
+    subprocess.run(['./app/pspdecrypt_mod.exe', '-v', f'./edat_out/{name}_DOCINFO.EDAT'])
     
     kfile = open(f'./edat_out/{name}_DOCINFO.EDAT.dec', 'rb')
     binkey = kfile.read()
     kfile.close()
+    
+    print(f'  EXTRACTED DOC KEY: {binkey.hex()}')
     return binkey
