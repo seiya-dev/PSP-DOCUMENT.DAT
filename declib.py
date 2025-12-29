@@ -64,10 +64,14 @@ def free_edata(name: str, buf: bytes):
     # 0xA0-0xAF                          Encrypted data hash?
     # 0xB0-0xBF                          Garbage? (Can be removed)
     
+    if buf[0x0c:0x10] != b'\x80\0\0\0':
+        print(f"  > BAD EDAT FILE")
+        return None
+    
     # Init PSP ECDSA
     ecdsa = PSPECDSA()
     edata_id = buf[0x10:].split(b'\x00', 1)[0].decode('utf-8', errors='ignore')
-    print(f"  EDATA ID: {edata_id}")
+    print(f"  EDAT ID: {edata_id}")
     
     # ECDSA keys
     sha1_hash = hashlib.sha1(buf[:0x58]).digest()
