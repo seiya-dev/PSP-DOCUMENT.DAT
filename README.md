@@ -10,4 +10,4 @@ The script will create a `png_out` folder containing all pages.
 ## app_psp.py
 Copy `DOCUMENT.DAT` and `DOCINFO.EDAT` (if present) into the dat_pspdocs folder, adding a prefix to the filenames
 (for example: `GAME_ULUS12345_DOCUMENT.DAT` and `GAME_ULUS12345_DOCINFO.EDAT` respectively).
-The script will create a png_out folder containing all pages.
+The script will create a `png_out` folder containing all pages.
