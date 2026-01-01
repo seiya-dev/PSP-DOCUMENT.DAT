@@ -180,7 +180,9 @@ class PSPDoc(object):
             if page_info.offset > 0:
                 self.data.pages.info.append(page_info)
         
-        print(self.data.header)
+        self.data.header.pop('sig')
+        self.data.header.pop('version')
+        print('  > HEADER: ', self.data.header)
         #print(self.data.pages.info)
         
         for page_index, info in enumerate(self.data.pages.info):

@@ -4,7 +4,7 @@ import struct
 import hashlib
 from ecdsa import PSPECDSA
 from pathlib import Path
-import subprocess
+from bbox import decrypt_bbox_blob
 
 ###################
 
@@ -71,7 +71,7 @@ def free_edata(name: str, buf: bytes):
     # Init PSP ECDSA
     ecdsa = PSPECDSA()
     edata_id = buf[0x10:].split(b'\x00', 1)[0].decode('utf-8', errors='ignore')
-    print(f"  EDAT ID: {edata_id}")
+    print(f"  > EDAT ID: {edata_id}")
     
     # ECDSA keys
     sha1_hash = hashlib.sha1(buf[:0x58]).digest()
@@ -87,22 +87,13 @@ def free_edata(name: str, buf: bytes):
         return None
     
     # PGD decrypt
-    pgd_data = buf[0x80:]
+    pgd_data = bytearray(buf[0x80:])
     
-    # Save extracted EDAT
-    Path(f'./edat_out/').mkdir(parents=True, exist_ok=True)
-    ofile = open(f'./edat_out/{name}_DOCINFO.EDAT', 'wb')
-    ofile.write(pgd_data)
-    ofile.close()
-    
-    # TODO: PYTHON EXTRACTOR
-    subprocess.run(['./app/pspdecrypt_mod.exe', '-v', f'./edat_out/{name}_DOCINFO.EDAT'])
-    kfile = open(f'./edat_out/{name}_DOCINFO.EDAT.dec', 'rb')
-    binkey = kfile.read()
-    kfile.close()
+    # decrypt
+    binkey, install_id = decrypt_bbox_blob(pgd_data)
     
     # Display DOC_KEY
-    print(f'  EXTRACTED DOC KEY: {" ".join(f"{v:02X}" for v in binkey)}')
+    print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
+    print(f'  > EXTRACTED DOC KEY: {" ".join(f"{v:02X}" for v in binkey)}')
     
-    # Return extracted DOC_KEY
     return binkey
