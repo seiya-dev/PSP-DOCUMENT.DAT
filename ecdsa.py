@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""
-COMPLETE PSP ECDSA Implementation
-"""
+
 import hashlib
 from typing import Optional, Tuple
 import random
 
+# PSP key constants
+PSP_KEYS = {
+    'EDATA_PUBKEY_X': 0x1F072BCCC162F2CFAEA0E7F4CDFD9CAEC6C45521,
+    'EDATA_PUBKEY_Y': 0x5301F4E370C3EDE2D4F5DBC3A7DE8CAAE8AD5B7D,
+    'EDATA_PRIVKEY':  0xE5C4D0A8249A6F27E5E0C9D534F4DA15223F42AD,
+}
+
+# Curve Init
 class PSPCurve:
-    """PSP's 160-bit ECDSA curve - VERIFIED WORKING."""
-    
     def __init__(self):
-        # PSP 160-bit curve parameters (VERIFIED CORRECT)
+        # PSP 160-bit curve parameters
         self.p = 0xFFFFFFFFFFFFFFFF00000001FFFFFFFFFFFFFFFF  # Prime field
         self.a = 0xFFFFFFFFFFFFFFFF00000001FFFFFFFFFFFFFFFC  # Curve coefficient a
         self.b = 0xA68BEDC33418029C1D3CE33B9A321FCCBB9E0F0B  # Curve coefficient b
@@ -56,8 +60,8 @@ class PSPECDSA:
         self.verbose = verbose
         
         # PSP public keys
-        self.EDATA_PUBKEY_X = 0x1F072BCCC162F2CFAEA0E7F4CDFD9CAEC6C45521
-        self.EDATA_PUBKEY_Y = 0x5301F4E370C3EDE2D4F5DBC3A7DE8CAAE8AD5B7D
+        self.EDATA_PUBKEY_X = PSP_KEYS['EDATA_PUBKEY_X']
+        self.EDATA_PUBKEY_Y = PSP_KEYS['EDATA_PUBKEY_Y']
         
         # Verify EDATA public key is on curve
         if not self.curve.point_on_curve(self.EDATA_PUBKEY_X, self.EDATA_PUBKEY_Y):
@@ -123,19 +127,6 @@ class PSPECDSA:
     
     def verify(self, hash_bytes: bytes, r_bytes: bytes, s_bytes: bytes,
                pubkey_x: int = None, pubkey_y: int = None) -> bool:
-        """
-        Verify PSP ECDSA signature.
-        
-        Args:
-            hash_bytes: SHA1 hash (20 bytes)
-            r_bytes: R component (20 bytes)
-            s_bytes: S component (20 bytes)
-            pubkey_x: Public key X coordinate (int, optional)
-            pubkey_y: Public key Y coordinate (int, optional)
-            
-        Returns:
-            True if signature is valid
-        """
         try:
             # Use EDATA public key by default
             if pubkey_x is None:
@@ -271,13 +262,6 @@ class PSPECDSA:
             print(f"  s: 0x{s:040x}")
         
         return r_bytes, s_bytes
-
-# PSP key constants
-PSP_KEYS = {
-    'EDATA_PUBKEY_X': 0x1F072BCCC162F2CFAEA0E7F4CDFD9CAEC6C45521,
-    'EDATA_PUBKEY_Y': 0x5301F4E370C3EDE2D4F5DBC3A7DE8CAAE8AD5B7D,
-    'EDATA_PRIVKEY': 0xE5C4D0A8249A6F27E5E0C9D534F4DA15223F42AD,
-}
 
 # Convenience functions
 def verify_psp_signature(hash_data: bytes, r: bytes, s: bytes, verbose: bool = False) -> bool:
