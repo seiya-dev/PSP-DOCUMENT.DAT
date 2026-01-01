@@ -2,10 +2,11 @@ import os
 
 import struct
 import hashlib
-from ecdsa import PSPECDSA
 from pathlib import Path
-from bbox import decrypt_bbox_blob
-from hexdump import hexdump
+
+from .ecdsa_psp import PSPECDSA
+from .bbox import decrypt_bbox_blob
+from .hexdump import hexdump
 
 ###################
 

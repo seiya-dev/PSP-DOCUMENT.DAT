@@ -6,8 +6,8 @@ from io import BytesIO
 from pathlib import Path
 
 from Crypto.Cipher import DES
-from free_edata import free_edata
-from hexdump import hexdump
+from pspdoclib.free_edata import free_edata
+from pspdoclib.hexdump import hexdump
 
 ###################
 
@@ -119,9 +119,9 @@ class PSPDoc(object):
             print(f'[:ERROR:] NOT PROPER DOC HEADER')
             return None
         
-        # if sliceBuf(header_out, 0x4, 0x8) != b'\0\0\1\0\0\0\1\0':
-        #     print(f'[:ERROR:] BAD FILE VERSION ID')
-        #     return None
+        if sliceBuf(header_out, 0x4, 0x8) != b'\0\0\1\0\0\0\1\0':
+            print(f'[:ERROR:] BAD FILE VERSION ID')
+            return None
         
         self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
         self.data.header.version = sliceBuf(header_out, 0x0004, 0x0008).hex()
@@ -243,7 +243,7 @@ class PSPDoc(object):
 ###################
 
 def readDocs():
-    docs = [p.as_posix() for p in Path('./dat_docs').glob('*.dat')]
+    docs = [p.as_posix() for p in Path('./dat_pspdocs').glob('*.dat')]
     
     for di in range(len(docs)):
         PSPDoc(f'{docs[di]}').readDocData()

@@ -3,9 +3,9 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple
-from hexdump import hexdump
+from .hexdump import hexdump
 
-from cryptolib import (
+from .cryptolib import (
     CryptoEngine,
     CRYPTOENGINE_CMD_ENCRYPT_IV_0,
     CRYPTOENGINE_CMD_DECRYPT_IV_0,

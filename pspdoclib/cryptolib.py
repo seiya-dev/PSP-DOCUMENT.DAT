@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Union
 from Crypto.Cipher import AES
 from Crypto.Hash import CMAC, SHA1
 
-from hexdump import hexdump
+from .hexdump import hexdump
 
 # =============================
 # Crypto Statuses
