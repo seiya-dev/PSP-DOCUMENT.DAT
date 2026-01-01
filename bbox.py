@@ -48,36 +48,8 @@ def init_engine_default() -> CryptoEngine:
     _ENGINE = eng
     return eng
 
-
-def init_engine(
-    *,
-    rnd_seed: bytes = b"",
-    fuseid_1: int,
-    fuseid_2: int,
-    keyvault: Optional[Dict[int, bytes]] = None,
-    master_key: Optional[bytes] = None,
-) -> CryptoEngine:
-    global _ENGINE
-    eng = CryptoEngine()
-    if master_key is not None:
-        if len(master_key) != 16:
-            raise ValueError("master_key must be 16 bytes")
-        eng.MASTER_KEY = master_key
-
-    if keyvault:
-        for idx, key16 in keyvault.items():
-            if len(key16) != 16:
-                raise ValueError(f"keyvault[{idx}] must be 16 bytes")
-            eng.set_keyvault_entry(int(idx), key16)
-
-    eng.init2(rnd_seed, int(fuseid_1), int(fuseid_2))
-    _ENGINE = eng
-    return eng
-
-
 def _eng() -> CryptoEngine:
     if _ENGINE is None:
-        # Safe default for dev; if you need real keys, call init_engine()
         return init_engine_default()
     return _ENGINE
 
@@ -92,34 +64,6 @@ _BBOX_KEY1 = bytes([0x27, 0x74, 0xFB, 0xEB, 0xA4, 0xA0, 0x01, 0xD7, 0x02, 0x56, 
 _LOC_1CD4 = bytes([0xE3, 0x50, 0xED, 0x1D, 0x91, 0x0A, 0x1F, 0xD0, 0x29, 0xBB, 0x1C, 0x3E, 0xF3, 0x40, 0x77, 0xFB])
 _LOC_1CE4 = bytes([0x13, 0x5F, 0xA4, 0x7C, 0xAB, 0x39, 0x5B, 0xA4, 0x76, 0xB8, 0xCC, 0xA9, 0x8F, 0x3A, 0x04, 0x45])
 _LOC_1CF4 = bytes([0x67, 0x8D, 0x7F, 0xA3, 0x2A, 0x9C, 0xA0, 0xD1, 0x50, 0x8A, 0xD8, 0x38, 0x5E, 0x4B, 0x01, 0x7E])
-
-def set_bbox_keys(*, key0: Optional[bytes] = None, key1: Optional[bytes] = None) -> None:
-    """Override bbox_key0/bbox_key1 (must be 16 bytes each)."""
-    global _BBOX_KEY0, _BBOX_KEY1
-    if key0 is not None:
-        if len(key0) != 16:
-            raise ValueError("key0 must be 16 bytes")
-        _BBOX_KEY0 = bytes(key0)
-    if key1 is not None:
-        if len(key1) != 16:
-            raise ValueError("key1 must be 16 bytes")
-        _BBOX_KEY1 = bytes(key1)
-
-def set_loc_masks(*, loc_1cd4: Optional[bytes] = None, loc_1ce4: Optional[bytes] = None, loc_1cf4: Optional[bytes] = None) -> None:
-    """Override the three 16-byte XOR masks used in bbox.c (if you have real values)."""
-    global _LOC_1CD4, _LOC_1CE4, _LOC_1CF4
-    if loc_1cd4 is not None:
-        if len(loc_1cd4) != 16:
-            raise ValueError("loc_1cd4 must be 16 bytes")
-        _LOC_1CD4 = bytes(loc_1cd4)
-    if loc_1ce4 is not None:
-        if len(loc_1ce4) != 16:
-            raise ValueError("loc_1ce4 must be 16 bytes")
-        _LOC_1CE4 = bytes(loc_1ce4)
-    if loc_1cf4 is not None:
-        if len(loc_1cf4) != 16:
-            raise ValueError("loc_1cf4 must be 16 bytes")
-        _LOC_1CF4 = bytes(loc_1cf4)
 
 # ============================================================
 # Helpers: cryptoengine wrappers matching the C header format
@@ -210,7 +154,7 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
 
 def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
     if mkey.pad_size > 16:
-        return 0x80510302  # matches C internal code
+        return 0x80510302
 
     data = memoryview(buf)[:size]
 
@@ -440,7 +384,6 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
         data[i] ^= keystream[i]
     return 0
 
-
 def BBCipherUpdate(ckey: CipherKey, data: bytearray, size: int) -> int:
     view = memoryview(data)[:size]
     p = 0
@@ -452,7 +395,6 @@ def BBCipherUpdate(ckey: CipherKey, data: bytearray, size: int) -> int:
         size -= dsize
         p += dsize
     return 0
-
 
 def BBCipherFinal(ckey: CipherKey) -> int:
     ckey.key[:] = b"\x00" * 16
@@ -472,7 +414,6 @@ def get_secure_install_id(buf: bytes, type: int, id_out: bytearray) -> int:
     bbmac_getkey(mkey, buf[0x70:0x70 + 16], tmp_id)
     id_out[:16] = tmp_id
     return 0
-
 
 def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type: int) -> int:
     if digest is None:
