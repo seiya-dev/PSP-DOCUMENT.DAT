@@ -23,12 +23,8 @@ class attrdict(dict):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
 
-###################
-
 def sliceBuf(buf, offset, length):
     return buf[offset:offset + length]
-
-###################
 
 def desDecrypt(key, input_data):
     cipher = DES.new(key, DES.MODE_CBC, DES_IV)
@@ -44,9 +40,6 @@ def sha1hmac(key: bytes, data: bytes) -> bytes:
 
 def b2i(input_data: bytes) -> int:
     return int.from_bytes(input_data, byteorder = 'little')
-
-def i2b(value: int, size: int) -> bytes:
-    return value.to_bytes(size, byteorder='little')
 
 ###################
 

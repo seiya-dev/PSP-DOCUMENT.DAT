@@ -6,8 +6,12 @@ from pathlib import Path
 from Crypto.Cipher import DES
 from pspdoclib.hexdump import hexdump
 
+###################
+
 DES_KEY = bytes.fromhex('39F7EFA16CCE5F4C')
 DES_IV  = bytes.fromhex('A819C4F5E154E30B')
+
+###################
 
 class attrdict(dict):
     def __init__(self, *args, **kwargs):
@@ -31,8 +35,7 @@ def sha1hash(data: bytes) -> bytes:
 def b2i(input_data: bytes) -> int:
     return int.from_bytes(input_data, byteorder = 'little')
 
-def i2b(value: int, size: int) -> bytes:
-    return value.to_bytes(size, byteorder='little')
+###################
 
 class PS1Doc(object):
     def __init__(self, file):
