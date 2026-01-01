@@ -9,7 +9,6 @@ from Crypto.Cipher import AES
 from Crypto.Hash import CMAC, SHA1
 
 from hexdump import hexdump
-import ecdsa
 
 # =============================
 # Crypto Statuses
@@ -557,6 +556,8 @@ class CryptoEngine:
         aes_key = keys_plain[0:16]
         
         if h.ecdsa_hash == 1:
+            raise NotImplementedError("CMD1 ecdsa_hash not implemented")
+            
             eh = Cmd1EcdsaHeader.parse(inbuf)
             
             # CMD1 uses curve set "b1/N1/G1" and pub "Px1/Py1"
@@ -739,6 +740,8 @@ class CryptoEngine:
         return _aes_cbc_decrypt_zero_iv(key, data)
     
     def CMD12_ecdsa_gen_keys(self) -> bytes:
+        raise NotImplementedError("CMD12_ecdsa_gen_keys not implemented")
+        
         ecdsa.ecdsa_set_curve(ecdsa.ec_p, ecdsa.ec_a, ecdsa.ec_b2, ecdsa.ec_N2, ecdsa.Gx2, ecdsa.Gy2)
         
         rnd = self.CMD14_prng()
@@ -752,6 +755,8 @@ class CryptoEngine:
         return priv + pub
     
     def CMD13_ecdsa_multiply_point(self, inbuf: bytes) -> bytes:
+        raise NotImplementedError("CMD13_ecdsa_multiply_point not implemented")
+        
         if len(inbuf) < 0x3C:
             raise ValueError("CMD13 buffer too small")
         
@@ -768,6 +773,8 @@ class CryptoEngine:
         return outQ
     
     def CMD16_ecdsa_sign(self, inbuf: bytes) -> bytes:
+        raise NotImplementedError("CMD16_ecdsa_sign not implemented")
+        
         if len(inbuf) < 0x34:
             raise ValueError("CMD16 buffer too small")
         
@@ -786,6 +793,8 @@ class CryptoEngine:
         return r + s
     
     def CMD17_ecdsa_verify(self, inbuf: bytes) -> int:
+        raise NotImplementedError("CMD17_ecdsa_verify not implemented")
+        
         if len(inbuf) < 0x64:
             return CRYPTOENGINE_INVALID_SIZE
         
