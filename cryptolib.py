@@ -595,7 +595,7 @@ class CryptoEngine:
         aes_key = keys_plain[0:16]
         
         if h.ecdsa_hash == 1:
-            return CRYPTOENGINE_INVALID_MODE  # not supported in your C
+            return CRYPTOENGINE_INVALID_MODE
         else:
             ret = self.CMD10_priv_sign_check(inbuf)
             if ret != CRYPTOENGINE_OPERATION_SUCCESS:
@@ -674,7 +674,7 @@ class CryptoEngine:
         
         out = bytearray()
         out += inbuf[0:0x24]
-        out[0] = 5  # matches your C behavior
+        out[0] = 5
         out += keyseed
         out += enc
         return bytes(out)

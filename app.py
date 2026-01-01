@@ -182,7 +182,7 @@ class PSPDoc(object):
         
         self.data.header.pop('sig')
         self.data.header.pop('version')
-        print('  > HEADER: ', self.data.header)
+        print('  > HEADER:', self.data.header)
         #print(self.data.pages.info)
         
         for page_index, info in enumerate(self.data.pages.info):
