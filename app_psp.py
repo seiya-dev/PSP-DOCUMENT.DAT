@@ -193,13 +193,14 @@ class PSPDoc(object):
             
             if page_hash[0x00:0x10] != bytes(0x10):
                 print(f'[:ERROR:] PAGE {page_index+1:03d} PADDING IS MISSING.')
-                return None
+                continue
             
             check_page_psp = sha1hmac(HMAC_KEY_PSP, page_buf)
             check_page_ps3 = sha1hmac(HMAC_KEY_PS3, page_buf)
             
             if check_page_psp != page_hash[0x10:0x20] or check_page_ps3 != page_hash[0x20:0x30]:
                 print(f'[:ERROR:] PAGE {page_index+1:03d} HASH MISMATCH')
+                continue
             
             page_info_head = desDecrypt(dec_key, sliceBuf(page_buf, 0x00, 0x20))
             page_size  = b2i(sliceBuf(page_info_head, 0x00, 0x04))
@@ -208,7 +209,7 @@ class PSPDoc(object):
             
             if page_size != info.size:
                 print(f'[:ERROR:] PAGE {page_index+1:03d} SIZE MISMATCH!')
-                return None
+                continue
             
             subheader_out = desDecrypt(dec_key, sliceBuf(page_buf, 0x20, enc_chunks * 0x08))
             page_buf = page_buf[payload_offset:]
@@ -234,11 +235,13 @@ class PSPDoc(object):
                 if png_size < png_min_size:
                     print(f'[:WARN:] PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
-                    
+                
                 Path(f'./png_out/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
                 ofile = open(f'./png_out/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
                 ofile.write(page_buf[:png_size])
                 ofile.close()
+        
+        return self.data
 
 ###################
 
