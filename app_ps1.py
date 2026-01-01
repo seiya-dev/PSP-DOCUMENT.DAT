@@ -98,7 +98,7 @@ class PS1Doc(object):
             return None
         
         if is_enc != 1 and sliceBuf(header_out, 0x0060, 0x0020) != bytes(0x0020):
-            print(f'[:ERROR:] BAD DOC NULL HASH DATA')
+            print(f'  > BAD DOC NULL HASH DATA')
             return None
         
         header_hash = sha1hash(desEncrypt(header_out))
@@ -222,12 +222,12 @@ class PS1Doc(object):
                 png_min_size = 0x43
                 
                 if needle_idx == -1:
-                    print(f'[:WARN:] PAGE {page_index+1:03d}: PNG trailer not found')
+                    print(f'  > PAGE {page_index+1:03d}: PNG trailer not found')
                     continue
                 
                 png_size = needle_idx + len(needle_buf)
                 if png_size < png_min_size:
-                    print(f'[:WARN:] PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
+                    print(f'  > PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
                     
                 Path(f'./png_out/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)

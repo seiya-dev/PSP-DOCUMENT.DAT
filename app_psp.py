@@ -83,37 +83,38 @@ class PSPDoc(object):
         if len(self.f_edat) > 0:
             print(f'[:INFO:] Reading: {self.data.file_info.name}_DOCINFO.EDAT')
             if len(self.f_edat) != 0x140:
-                print('[:ERROR:] BAD DOCINFO.EDAT SIZE!')
+                print('  > BAD DOCINFO.EDAT SIZE!')
                 return None
             
             dec_key = free_edata(self.data.file_info.name, self.f_edat)
-            dec_key = desChangeKey(dec_key)
+            if dec_key is not None:
+                dec_key = desChangeKey(dec_key)
         
         header = self.f_dat[0x00:0x10]
         if header != b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
-            print(f'[:ERROR:] ONLY ENCRYPTED DOCUMENT.DAT SUPPORTED.')
+            print(f'  > ONLY ENCRYPTED DOCUMENT.DAT SUPPORTED.')
             return None
         
         header_padding = self.f_dat[0x70:0x80]
         if header_padding != bytes(0x10):
-            print(f'[:ERROR:] PADDING AT 0x00000070 IS MISSING.')
+            print(f'  > PADDING AT 0x00000070 IS MISSING.')
             return None
         
         check_header_psp = sha1hmac(HMAC_KEY_PSP, self.f_dat[0x10:0x70])
         check_header_ps3 = sha1hmac(HMAC_KEY_PS3, self.f_dat[0x10:0x70])
         
         if check_header_psp != self.f_dat[0x80:0x90] or check_header_ps3 != self.f_dat[0x90:0xa0]:
-            print(f'[:ERROR:] SHA1-HMAC HEADER MISMATCH.')
+            print(f'  > SHA1-HMAC HEADER MISMATCH.')
             return None
         
         header_out = desDecrypt(dec_key, self.f_dat[0x10:0x70])
         
         if sliceBuf(header_out, 0x0, 0x4) != b'DOC ':
-            print(f'[:ERROR:] NOT PROPER DOC HEADER')
+            print(f'  > NOT PROPER DOC HEADER')
             return None
         
         if sliceBuf(header_out, 0x4, 0x8) != b'\0\0\1\0\0\0\1\0':
-            print(f'[:ERROR:] BAD FILE VERSION ID')
+            print(f'  > BAD FILE VERSION ID')
             return None
         
         self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
@@ -135,20 +136,20 @@ class PSPDoc(object):
         sum_metadata_offset = 0x00a0 + metadata_size
         
         if sliceBuf(self.f_dat, sum_metadata_offset, 0x10) != bytes(0x10):
-            print(f'[:ERROR:] PADDING AT 0x{sum_metadata_offset:08x} IS MISSING.')
+            print(f'  > PADDING AT 0x{sum_metadata_offset:08x} IS MISSING.')
             return None
         
         if (
             check_metadata_psp != sliceBuf(self.f_dat, sum_metadata_offset + 0x10, 0x10) 
             or check_metadata_ps3 != sliceBuf(self.f_dat, sum_metadata_offset + 0x20, 0x10)
         ):
-            print(f'[:ERROR:] SHA1-HMAC METADATA MISMATCH.')
+            print(f'  > SHA1-HMAC METADATA MISMATCH.')
             return None
         
         pages_metadata = desDecrypt(dec_key, self.f_dat[0x00a0:0x00a0+metadata_size])
         
         if sliceBuf(pages_metadata, 0x0, 0x4) != bytes.fromhex('FFFFFFFF'):
-            print('[:ERROR:] MARKER MISMATCH')
+            print('  > MARKER MISMATCH')
             return None
         
         ps3_pages_count_offset = 0x3188
@@ -168,7 +169,7 @@ class PSPDoc(object):
             page_info.size_ps3   = b2i(sliceBuf(entry_data, 0x001c, 0x0004))
             
             if page_info.offset != page_info.offset_ps3 or page_info.size != page_info.size_ps3:
-                print(f'[:ERROR:] PAGE {i+1:03d} DATA MISMATCH!')
+                print(f'  > PAGE {i+1:03d} DATA MISMATCH!')
                 return None
             
             if page_info.offset > 0:
@@ -185,7 +186,7 @@ class PSPDoc(object):
             page_buf = page_buf[:-0x30]
             
             if page_hash[0x00:0x10] != bytes(0x10):
-                print(f'[:ERROR:] PAGE {page_index+1:03d} PADDING IS MISSING.')
+                print(f'  > PAGE {page_index+1:03d} PADDING IS MISSING.')
                 continue
             
             check_page_psp = sha1hmac(HMAC_KEY_PSP, page_buf)
@@ -201,7 +202,7 @@ class PSPDoc(object):
             payload_offset = 0x20 + enc_chunks * 0x08
             
             if page_size != info.size:
-                print(f'[:ERROR:] PAGE {page_index+1:03d} SIZE MISMATCH!')
+                print(f'  > PAGE {page_index+1:03d} SIZE MISMATCH!')
                 continue
             
             subheader_out = desDecrypt(dec_key, sliceBuf(page_buf, 0x20, enc_chunks * 0x08))
@@ -221,12 +222,12 @@ class PSPDoc(object):
                 png_min_size = 0x43
                 
                 if needle_idx == -1:
-                    print(f'[:WARN:] PAGE {page_index+1:03d}: PNG trailer not found')
+                    print(f'  > PAGE {page_index+1:03d}: PNG trailer not found')
                     continue
                 
                 png_size = needle_idx + len(needle_buf)
                 if png_size < png_min_size:
-                    print(f'[:WARN:] PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
+                    print(f'  > PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
                 
                 Path(f'./png_out/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
