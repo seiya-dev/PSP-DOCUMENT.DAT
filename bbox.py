@@ -3,6 +3,7 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple
+from hexdump import hexdump
 
 from cryptolib import (
     CryptoEngine,

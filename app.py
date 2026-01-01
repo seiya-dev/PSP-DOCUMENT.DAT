@@ -6,7 +6,8 @@ from io import BytesIO
 from pathlib import Path
 
 from Crypto.Cipher import DES
-from declib import free_edata, hexdump
+from free_edata import free_edata
+from hexdump import hexdump
 
 ###################
 
