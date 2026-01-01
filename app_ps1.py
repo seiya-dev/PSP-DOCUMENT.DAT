@@ -63,7 +63,7 @@ class PS1Doc(object):
         in_buf = bytearray()
         is_enc = 0
         
-        print(f'[:INFO:] Reading: {self.data.file_info.name}.DAT')
+        print(f'\n[:INFO:] Reading: {self.data.file_info.name}.DAT')
         
         if header == b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
             is_enc = 1
@@ -81,17 +81,18 @@ class PS1Doc(object):
         
         if is_enc == 1:
             if header_hash != sha1hash(header_out):
-                print(f'[:ERROR:] BAD ENCRYPTED BLOB: DOC HEADER')
+                print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
                 return None
             
             header_out = desDecrypt(header_out)
         
         if sliceBuf(header_out, 0x0, 0x4) != b'DOC ':
-            print(f'[:ERROR:] BAD DOC HEADER MAGIC')
+            print(f'  > BAD DOC HEADER MAGIC')
             return None
         
         if sliceBuf(header_out, 0x0004, 0x0008) != b'\0\0\1\0\0\0\1\0':
-            print(f'[:ERROR:] BAD FILE VERSION ID')
+            print(f'  > BAD FILE VERSION ID')
+            return None
         
         if is_enc != 1 and sliceBuf(header_out, 0x0060, 0x0020) != bytes(0x0020):
             print(f'[:ERROR:] BAD DOC NULL HASH DATA')
@@ -112,7 +113,7 @@ class PS1Doc(object):
         self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
         
         if self.data.header.page_limit not in (99, 999):
-            print(f'[:ERROR:] BAD DOC PAGE LIMIT')
+            print(f'  > BAD DOC PAGE LIMIT')
             return None
         
         info_block_size = 0x1f3e8 if self.data.header.page_limit == 999 else 0x31e8
@@ -121,14 +122,14 @@ class PS1Doc(object):
         
         if is_enc == 1:
             if sha1hash(info_block) != info_hash:
-                print(f'[:ERROR:] BAD ENCRYPTED BLOB: INFO BLOCK')
+                print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
                 return None
             
             self.data.sha1sum.info_block = info_hash.hex()
             info_block = desDecrypt(info_block)
         
         if sliceBuf(info_block, 0x0, 0x4) != bytes.fromhex('FFFFFFFF'):
-            print('[:ERROR:] MARKER MISMATCH')
+            print('  > MARKER MISMATCH')
             return None
         
         data_buf += sliceBuf(info_block, 0x0000, 0x0008)
@@ -136,7 +137,7 @@ class PS1Doc(object):
         info_block = info_block[0x0008:]
         
         if self.data.header.pages_total > self.data.header.page_limit:
-            print('[:ERROR:] BAD DOC PAGE COUNT')
+            print('  > BAD DOC PAGE COUNT')
             return None
         
         for i in range(self.data.header.pages_total):
@@ -153,7 +154,7 @@ class PS1Doc(object):
                 self.data.pages.info.append(page_info)
         
         if len(data_buf) > self.data.pages.info[0].offset:
-            print(f'[:ERROR:] BAD DOC OFFSET DATA')
+            print(f'  > BAD DOC OFFSET DATA')
             return None
         
         stuffing_len = self.data.pages.info[0].offset - len(data_buf)
@@ -166,10 +167,12 @@ class PS1Doc(object):
             self.data.header.pages_total_ps3 = b2i(sliceBuf(data_buf, offset_block_end, 0x0004))
         
         if self.data.header.pages_total_ps3 == 0:
-            print(f'[:WARN:] BAD DOCUMENT.DAT FORMAT!')
+            print(f'  > WARN: BAD DOCUMENT.DAT FORMAT!')
         
-        print(' > HEADER: ', self.data.header)
-        print(' > SHA1SUM:', self.data.sha1sum)
+        self.data.header.pop('sig')
+        self.data.header.pop('version')
+        print('  > HEADER: ', self.data.header)
+        # print('  > SHA1SUM:', self.data.sha1sum)
         
         for page_index, info in enumerate(self.data.pages.info):
             page_buf = bytearray(sliceBuf(in_buf, info.offset, info.size))
@@ -180,9 +183,9 @@ class PS1Doc(object):
                 page_buf = page_buf[:-0x20]
                 
                 if sha1hash(page_buf) != page_hash[-0x10:]:
-                    print(f'[:ERROR:] PAGE {page_index+1:03d} HASH MISMATCH')
+                    print(f'  > PAGE {page_index+1:03d} SHA1 HASH MISMATCH')
                     data_buf += page_buf + page_hash
-                    continue
+                    return None
                 
                 page_buf += bytes(0x20)
                 page_info_head = desDecrypt(sliceBuf(page_buf, 0x00, 0x20))
@@ -193,7 +196,7 @@ class PS1Doc(object):
                 payload_offset = 0x20 + enc_chunks * 0x08
                 
                 if page_size != info.size:
-                    print(f'[:ERROR:] PAGE {page_index+1:03d} SIZE MISMATCH!')
+                    print(f'  > PAGE {page_index+1:03d} SIZE MISMATCH!')
                     return None
                 
                 subheader_out = desDecrypt(sliceBuf(page_buf, 0x20, enc_chunks * 0x08))

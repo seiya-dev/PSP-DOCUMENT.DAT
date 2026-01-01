@@ -84,11 +84,11 @@ class PSPDoc(object):
             self.f_dat = bytearray(self_b_dat)
     
     def readDocData(self):
-        print(f'\n[:INFO:] Reading: {self.data.file_info.prefix}_DOCUMENT.DAT')
+        print(f'\n[:INFO:] Reading: {self.data.file_info.name}_DOCUMENT.DAT')
         dec_key = DES_KEY
         
         if len(self.f_edat) > 0:
-            print(f'[:INFO:] Reading: {self.data.file_info.prefix}_DOCINFO.EDAT')
+            print(f'[:INFO:] Reading: {self.data.file_info.name}_DOCINFO.EDAT')
             if len(self.f_edat) != 0x140:
                 print('[:ERROR:] BAD DOCINFO.EDAT SIZE!')
                 return None
