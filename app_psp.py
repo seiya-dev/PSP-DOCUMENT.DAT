@@ -86,9 +86,9 @@ class PSPDoc(object):
                 print('  > BAD DOCINFO.EDAT SIZE!')
                 return None
             
-            dec_key = free_edata(self.data.file_info.name, self.f_edat)
-            if dec_key is not None:
-                dec_key = desChangeKey(dec_key)
+            doc_key = free_edata(self.data.file_info.name, self.f_edat)
+            if doc_key is not None:
+                dec_key = desChangeKey(doc_key)
         
         header = self.f_dat[0x00:0x10]
         if header != b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
