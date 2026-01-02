@@ -248,6 +248,7 @@ class PSPDoc(object):
             
             if is_default_key == 0 and is_proper_doc == 1:
                 enc_page_buf = bytearray(page_buf)
+                # TODO: Chunk encrypt - Skip or 1
                 
                 for j in range(enc_chunks):
                     enc_chunk_offset = b2i(sliceBuf(subheader_out, j * 0x08 + 0x00, 0x04))
