@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 
 from .ecdsa_psp import PSPECDSA
-from .bbox import decrypt_bbox_blob
+from .bbox import decrypt_bbox_blob, BBoxException
 from .hexdump import hexdump
 
 ###################
@@ -33,17 +33,17 @@ def free_edata(name: str, buf: bytes):
     # 0x04-0x07   key_index    04 bytes  Key Index?
     # 0x08-0x0B   drm_type     04 bytes  DRM type/version
     # 0x0C-0x0F   padding      04 bytes  Padding
-    # 0x10-0x1F                          Header key
-    # 0x20-0x2F                          Some hash? (Always same)
-    # 0x30-0x3F                          Encrypted data start
-    # 0x40-0x4F                          Encrypted data
-    # 0x50-0x5F                          Encrypted data end
-    # 0x60-0x6F                          File hash?
-    # 0x70-0x7F                          Secure Install ID MAC
-    # 0x80-0x8F                          DNAS MAC
-    # 0x90-0x9F                          Data hash?
-    # 0xA0-0xAF                          Encrypted data hash?
-    # 0xB0-0xBF                          Garbage? (Can be removed)
+    # 0x10-0x1F                          Header Key
+    # 0x20-0x2F                          Hash Key (Always same for Doc Key PGD)
+    # 0x30-0x3F                          Encrypted data header start
+    # 0x40-0x4F                          Encrypted data header 
+    # 0x50-0x5F                          Encrypted data header end
+    # 0x60-0x6F                          Data header MAC Hash
+    # 0x70-0x7F                          Secure Install ID MAC Hash
+    # 0x80-0x8F                          DNAS MAC Hash
+    # 0x90-0x9F                          Encrypted data
+    # 0xA0-0xAF                          Garbage / Padding
+    # 0xB0-0xBF                          Garbage / Padding (Not Needed)
     
     if buf[0x0c:0x10] != b'\x80\0\0\0':
         print(f"  > BAD EDAT FILE")
@@ -71,7 +71,12 @@ def free_edata(name: str, buf: bytes):
     pgd_data = bytearray(buf[0x80:])
     
     # decrypt
-    binkey, install_id = decrypt_bbox_blob(pgd_data)
+    try:
+        binkey, install_id = decrypt_bbox_blob(pgd_data)
+    except BBoxException as err:
+        print(f'  > [ERROR] Code: {err.code}, MSG: {err}')
+        print(f"  > BAD EDAT FILE")
+        return None
     
     # Display DOC_KEY
     print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
