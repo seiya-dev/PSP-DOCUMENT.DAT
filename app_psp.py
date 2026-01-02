@@ -45,6 +45,9 @@ def sha1hmac(key: bytes, data: bytes) -> bytes:
 def b2i(input_data: bytes) -> int:
     return int.from_bytes(input_data, byteorder = 'little')
 
+def i2b(value: int, size: int = 4) -> bytes:
+    return value.to_bytes(size, byteorder='little')
+
 ###################
 
 class PSPDoc(object):
@@ -248,16 +251,8 @@ class PSPDoc(object):
             
             if is_default_key == 0 and is_proper_doc == 1:
                 enc_page_buf = bytearray(page_buf)
-                # TODO: Chunk encrypt - Skip or 1
-                
-                for j in range(enc_chunks):
-                    enc_chunk_offset = b2i(sliceBuf(subheader_out, j * 0x08 + 0x00, 0x04))
-                    enc_chunk_size   = b2i(sliceBuf(subheader_out, j * 0x08 + 0x04, 0x04))
-                    enc_chunk = desEncrypt(sliceBuf(enc_page_buf, enc_chunk_offset, enc_chunk_size))
-                    enc_page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = enc_chunk
-                
-                enc_page_buf[:0] = desEncrypt(subheader_out)
-                enc_page_buf[:0] = desEncrypt(page_info_head)
+                enc_page_buf[:0] = desEncrypt(i2b(page_size) + bytes(0x1c))
+                enc_page_buf += bytes(page_size - len(enc_page_buf) - 0x30)
                 
                 enc_page_hmac_psp = sha1hmac(HMAC_KEY_PSP, enc_page_buf)
                 enc_page_hmac_ps3 = sha1hmac(HMAC_KEY_PS3, enc_page_buf)
@@ -265,6 +260,7 @@ class PSPDoc(object):
                 enc_page_buf += bytes(0x10)
                 enc_page_buf += enc_page_hmac_psp
                 enc_page_buf += enc_page_hmac_ps3
+                
                 data_buf += enc_page_buf
             
             if not os.path.isfile(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
