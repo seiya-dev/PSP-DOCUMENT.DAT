@@ -251,11 +251,11 @@ class PSPDoc(object):
                 ofile.write(page_buf[:png_size])
                 ofile.close()
         
-        if is_proper_doc == 1 and not os.path.isfile(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT'):
-            Path(f'./out_dat_psp').mkdir(parents=True, exist_ok=True)
-            ofile = open(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT', 'wb')
-            ofile.write(data_buf)
-            ofile.close()
+        # if is_proper_doc == 1 and not os.path.isfile(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT'):
+        #     Path(f'./out_dat_psp').mkdir(parents=True, exist_ok=True)
+        #     ofile = open(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT', 'wb')
+        #     ofile.write(data_buf)
+        #     ofile.close()
         
         return self.data
 
