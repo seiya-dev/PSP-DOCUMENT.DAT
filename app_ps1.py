@@ -216,7 +216,7 @@ class PS1Doc(object):
                 
             # data_buf += page_buf
             self.data.pages.data.append(page_buf)
-            if not os.path.isfile(f'./png_out/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
+            if not os.path.isfile(f'./png_out_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
                 needle_buf = b'IEND\xAE\x42\x60\x82'
                 needle_idx = page_buf.rfind(needle_buf)
                 png_min_size = 0x43
@@ -230,8 +230,8 @@ class PS1Doc(object):
                     print(f'  > PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
                     
-                Path(f'./png_out/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
-                ofile = open(f'./png_out/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
+                Path(f'./png_out_ps1/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
+                ofile = open(f'./png_out_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
                 ofile.write(page_buf[:png_size])
                 ofile.close()
         
