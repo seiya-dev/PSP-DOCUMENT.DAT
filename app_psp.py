@@ -78,6 +78,8 @@ class PSPDoc(object):
     
     def readDocData(self):
         print(f'\n[:INFO:] Reading: {self.data.file_info.name}_DOCUMENT.DAT')
+        data_buf = bytearray()
+        is_proper_doc = 1
         dec_key = DES_KEY
         
         if len(self.f_edat) > 0:
@@ -116,6 +118,9 @@ class PSPDoc(object):
         if sliceBuf(header_out, 0x4, 0x8) != b'\0\0\1\0\0\0\1\0':
             print(f'  > BAD FILE VERSION ID')
             return None
+        
+        data_buf += header_out  # DECODED HEADER
+        data_buf += bytes(0x30) # NULL + HMAC HASHES
         
         self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
         self.data.header.version = sliceBuf(header_out, 0x0004, 0x0008).hex()
@@ -156,6 +161,10 @@ class PSPDoc(object):
         if self.data.header.page_limit > 99:
             ps3_pages_count_offset = 0x1f388
         
+        data_buf += pages_metadata # PAGE METADATA
+        data_buf += bytes(0x30)    # NULL + HMAC HASHES
+        data_buf += bytes(0x10)    # PGD REMOVING PAD
+        
         self.data.header.pages_total     = b2i(pages_metadata[0x04:0x08])
         self.data.header.pages_total_ps3 = b2i(sliceBuf(pages_metadata, ps3_pages_count_offset, 0x04))
         
@@ -187,6 +196,7 @@ class PSPDoc(object):
             
             if page_hash[0x00:0x10] != bytes(0x10):
                 print(f'  > PAGE {page_index+1:03d} PADDING IS MISSING.')
+                is_proper_doc = 0
                 continue
             
             check_page_psp = sha1hmac(HMAC_KEY_PSP, page_buf)
@@ -194,6 +204,7 @@ class PSPDoc(object):
             
             if check_page_psp != page_hash[0x10:0x20] or check_page_ps3 != page_hash[0x20:0x30]:
                 print(f'[:ERROR:] PAGE {page_index+1:03d} HASH MISMATCH')
+                is_proper_doc = 0
                 continue
             
             page_info_head = desDecrypt(dec_key, sliceBuf(page_buf, 0x00, 0x20))
@@ -203,6 +214,7 @@ class PSPDoc(object):
             
             if page_size != info.size:
                 print(f'  > PAGE {page_index+1:03d} SIZE MISMATCH!')
+                is_proper_doc = 0
                 continue
             
             subheader_out = desDecrypt(dec_key, sliceBuf(page_buf, 0x20, enc_chunks * 0x08))
@@ -216,6 +228,10 @@ class PSPDoc(object):
                 page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = dec_chunk
             
             self.data.pages.data.append(page_buf)
+            if is_proper_doc == 1:
+                # ADD PAGE PANG WITH PADDING
+                data_buf += page_buf + bytes(page_size - len(page_buf))
+            
             if not os.path.isfile(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
                 needle_buf = b'IEND\xAE\x42\x60\x82'
                 needle_idx = page_buf.rfind(needle_buf)
@@ -234,6 +250,12 @@ class PSPDoc(object):
                 ofile = open(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
                 ofile.write(page_buf[:png_size])
                 ofile.close()
+        
+        if is_proper_doc == 1 and not os.path.isfile(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT'):
+            Path(f'./out_dat_psp').mkdir(parents=True, exist_ok=True)
+            ofile = open(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT', 'wb')
+            ofile.write(data_buf)
+            ofile.close()
         
         return self.data
 
