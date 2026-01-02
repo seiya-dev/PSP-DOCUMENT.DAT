@@ -216,7 +216,7 @@ class PSPDoc(object):
                 page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = dec_chunk
             
             self.data.pages.data.append(page_buf)
-            if not os.path.isfile(f'./png_out_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
+            if not os.path.isfile(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
                 needle_buf = b'IEND\xAE\x42\x60\x82'
                 needle_idx = page_buf.rfind(needle_buf)
                 png_min_size = 0x43
@@ -230,8 +230,8 @@ class PSPDoc(object):
                     print(f'  > PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
                 
-                Path(f'./png_out_psp/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
-                ofile = open(f'./png_out_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
+                Path(f'./out_png_psp/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
+                ofile = open(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
                 ofile.write(page_buf[:png_size])
                 ofile.close()
         

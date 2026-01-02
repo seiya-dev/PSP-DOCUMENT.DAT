@@ -64,6 +64,7 @@ class PS1Doc(object):
         header = self.f.read(0x10)
         data_buf = bytearray()
         in_buf = bytearray()
+        is_proper_doc = 1
         is_enc = 0
         
         print(f'\n[:INFO:] Reading: {self.data.file_info.name}.DAT')
@@ -188,6 +189,7 @@ class PS1Doc(object):
                 if sha1hash(page_buf) != page_hash[-0x10:]:
                     print(f'  > PAGE {page_index+1:03d} SHA1 HASH MISMATCH')
                     data_buf += page_buf + page_hash
+                    is_proper_doc = 0
                     continue
                 
                 page_buf += bytes(0x20)
@@ -200,6 +202,7 @@ class PS1Doc(object):
                 
                 if page_size != info.size:
                     print(f'  > PAGE {page_index+1:03d} SIZE MISMATCH!')
+                    is_proper_doc = 0
                     continue
                 
                 subheader_out = desDecrypt(sliceBuf(page_buf, 0x20, enc_chunks * 0x08))
@@ -213,10 +216,12 @@ class PS1Doc(object):
                     page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = dec_chunk
                 
                 page_buf += bytes(payload_offset)
-                
-            # data_buf += page_buf
+            
+            if is_proper_doc == 1:
+                data_buf += page_buf
             self.data.pages.data.append(page_buf)
-            if not os.path.isfile(f'./png_out_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
+            
+            if not os.path.isfile(f'./out_png_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
                 needle_buf = b'IEND\xAE\x42\x60\x82'
                 needle_idx = page_buf.rfind(needle_buf)
                 png_min_size = 0x43
@@ -230,16 +235,16 @@ class PS1Doc(object):
                     print(f'  > PAGE {page_index+1:03d}: PNG too small or trailer found too early (size={png_size})')
                     continue
                     
-                Path(f'./png_out_ps1/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
-                ofile = open(f'./png_out_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
+                Path(f'./out_png_ps1/{self.data.file_info.name}').mkdir(parents=True, exist_ok=True)
+                ofile = open(f'./out_png_ps1/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png', 'wb')
                 ofile.write(page_buf[:png_size])
                 ofile.close()
         
-        # if is_enc == 1 and not os.path.isfile(f'./dat_out/{self.data.file_info.name}_DEC.DAT'):
-        #     Path(f'./dat_out').mkdir(parents=True, exist_ok=True)
-        #     ofile = open(f'./dat_out/{self.data.file_info.name}_DEC.DAT', 'wb')
-        #     ofile.write(data_buf)
-        #     ofile.close()
+        if is_proper_doc == 1 and is_enc == 1 and not os.path.isfile(f'./out_dat_ps1/{self.data.file_info.name}_DEC.DAT'):
+            Path(f'./out_dat_ps1').mkdir(parents=True, exist_ok=True)
+            ofile = open(f'./out_dat_ps1/{self.data.file_info.name}_DEC.DAT', 'wb')
+            ofile.write(data_buf)
+            ofile.close()
         
         return self.data
 
