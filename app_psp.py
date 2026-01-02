@@ -30,6 +30,10 @@ def desDecrypt(key, input_data):
     cipher = DES.new(key, DES.MODE_CBC, DES_IV)
     return cipher.decrypt(input_data)
 
+def desEncrypt(data: bytes) -> bytes:
+    cipher = DES.new(DES_KEY, DES.MODE_CBC, DES_IV)
+    return cipher.encrypt(data)
+
 def desChangeKey(doc_key: bytes) -> bytes:
     doc_xor = bytes([0xF9, 0x32, 0xFF, 0x26, 0x47, 0x4A, 0x8D, 0xC0])
     des_key = bytes(d ^ x for d, x in zip(doc_key, doc_xor))
@@ -78,7 +82,7 @@ class PSPDoc(object):
     
     def readDocData(self):
         print(f'\n[:INFO:] Reading: {self.data.file_info.name}_DOCUMENT.DAT')
-        data_buf = bytearray()
+        is_default_key = 1
         is_proper_doc = 1
         dec_key = DES_KEY
         
@@ -87,6 +91,9 @@ class PSPDoc(object):
             if len(self.f_edat) != 0x140:
                 print('  > BAD DOCINFO.EDAT SIZE!')
                 return None
+            
+            is_default_key = 0
+            data_buf = bytearray()
             
             doc_key = free_edata(self.data.file_info.name, self.f_edat)
             if doc_key is not None:
@@ -119,8 +126,13 @@ class PSPDoc(object):
             print(f'  > BAD FILE VERSION ID')
             return None
         
-        data_buf += header_out  # DECODED HEADER
-        data_buf += bytes(0x30) # NULL + HMAC HASHES
+        if is_default_key == 0:
+            header_enc = desEncrypt(header_out)
+            data_buf += header # PGD Header
+            data_buf += header_enc
+            data_buf += bytes(0x10)
+            data_buf += sha1hmac(HMAC_KEY_PSP, header_enc)
+            data_buf += sha1hmac(HMAC_KEY_PS3, header_enc)
         
         self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
         self.data.header.version = sliceBuf(header_out, 0x0004, 0x0008).hex()
@@ -161,9 +173,13 @@ class PSPDoc(object):
         if self.data.header.page_limit > 99:
             ps3_pages_count_offset = 0x1f388
         
-        data_buf += pages_metadata # PAGE METADATA
-        data_buf += bytes(0x30)    # NULL + HMAC HASHES
-        data_buf += bytes(0x10)    # PGD REMOVING PAD
+        if is_default_key == 0:
+            # PAGE METADATA Encrypted
+            meta_enc = desEncrypt(pages_metadata)
+            data_buf += meta_enc
+            data_buf += bytes(0x10)
+            data_buf += sha1hmac(HMAC_KEY_PSP, meta_enc)
+            data_buf += sha1hmac(HMAC_KEY_PS3, meta_enc)
         
         self.data.header.pages_total     = b2i(pages_metadata[0x04:0x08])
         self.data.header.pages_total_ps3 = b2i(sliceBuf(pages_metadata, ps3_pages_count_offset, 0x04))
@@ -228,9 +244,27 @@ class PSPDoc(object):
                 page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = dec_chunk
             
             self.data.pages.data.append(page_buf)
-            if is_proper_doc == 1:
-                # ADD PAGE PANG WITH PADDING
-                data_buf += page_buf + bytes(page_size - len(page_buf))
+            enc_page_buf = bytearray(0x0)
+            
+            if is_default_key == 0 and is_proper_doc == 1:
+                enc_page_buf = bytearray(page_buf)
+                
+                for j in range(enc_chunks):
+                    enc_chunk_offset = b2i(sliceBuf(subheader_out, j * 0x08 + 0x00, 0x04))
+                    enc_chunk_size   = b2i(sliceBuf(subheader_out, j * 0x08 + 0x04, 0x04))
+                    enc_chunk = desEncrypt(sliceBuf(enc_page_buf, enc_chunk_offset, enc_chunk_size))
+                    enc_page_buf[enc_chunk_offset:enc_chunk_offset + enc_chunk_size] = enc_chunk
+                
+                enc_page_buf[:0] = desEncrypt(subheader_out)
+                enc_page_buf[:0] = desEncrypt(page_info_head)
+                
+                enc_page_hmac_psp = sha1hmac(HMAC_KEY_PSP, enc_page_buf)
+                enc_page_hmac_ps3 = sha1hmac(HMAC_KEY_PS3, enc_page_buf)
+                
+                enc_page_buf += bytes(0x10)
+                enc_page_buf += enc_page_hmac_psp
+                enc_page_buf += enc_page_hmac_ps3
+                data_buf += enc_page_buf
             
             if not os.path.isfile(f'./out_png_psp/{self.data.file_info.name}/{self.data.header.code}_DOC_{page_index+1:03d}.png'):
                 needle_buf = b'IEND\xAE\x42\x60\x82'
@@ -251,11 +285,11 @@ class PSPDoc(object):
                 ofile.write(page_buf[:png_size])
                 ofile.close()
         
-        # if is_proper_doc == 1 and not os.path.isfile(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT'):
-        #     Path(f'./out_dat_psp').mkdir(parents=True, exist_ok=True)
-        #     ofile = open(f'./out_dat_psp/{self.data.file_info.name}_DEC.DAT', 'wb')
-        #     ofile.write(data_buf)
-        #     ofile.close()
+        if is_default_key == 0 and is_proper_doc == 1 and not os.path.isfile(f'./out_dat_psp/{self.data.file_info.name}_DEFKEY.DAT'):
+            Path(f'./out_dat_psp').mkdir(parents=True, exist_ok=True)
+            ofile = open(f'./out_dat_psp/{self.data.file_info.name}_DEFKEY.DAT', 'wb')
+            ofile.write(data_buf)
+            ofile.close()
         
         return self.data
 
