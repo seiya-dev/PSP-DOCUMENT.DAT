@@ -260,26 +260,68 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
     mkey.type = 0
     return 0
 
+def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
+    if len(bbmac) != 16:
+        return ERROR_INVALID_ARG
+
+    tmp = bytearray(16)
+    ret = BBMacFinal(mkey, tmp, vkey)
+    if ret != 0:
+        return ret, -1
+
+    kbuf = bytearray(16)
+
+    type_ = mkey.type
+
+    if type_ == 3:
+        dec = _crypto_cmd_decrypt_iv0(bbmac, 0x63)
+        kbuf[:] = dec
+    else:
+        # For other types (mostly 1 and 2) → use bbmac as-is
+        kbuf[:] = bbmac
+
+    # Now compare the decrypted/processed MAC with the freshly computed one
+    return kbuf, tmp
+    
+    match = True
+    for i in range(16):
+        if kbuf[i] != tmp[i]:
+            match = False
+            break
+
+    if not match:
+        return ERROR_BROKEN_DATA  # 0x80510207 in your error list, but original often uses 0x80510300
+
+    return 0
+
 def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
     if len(bbmac) != 16:
-        _raise(ERROR_INVALID_ARG, "bbmac must be 16 bytes")
+        _raise(ERROR_INVALID_ARG, "bbmac must be exactly 16 bytes")
+    
+    if len(vkey_out) < 16:
+        _raise(ERROR_INVALID_ARG, "vkey_out buffer must be at least 16 bytes")
+
+    # Step 1: Compute the expected MAC value (without version key)
     tmp = bytearray(16)
     ret = BBMacFinal(mkey, tmp, None)
-    if ret < 0:
+    if ret != 0:
         return ret
 
-    # decrypt bbmac if type==3 with keyseed 0x63, else treat as raw
+    # Working buffer for the provided MAC transformations
+    mac_working = bytearray(bbmac)
+
+    # Special handling for type 3: MAC is pre-encrypted with keyseed 0x63
     if mkey.type == 3:
-        dec = _crypto_cmd_decrypt_iv0(bbmac, 0x63)
-    else:
-        dec = bbmac
+        mac_working[:] = _crypto_cmd_decrypt_iv0(bytes(mac_working), 0x63)
 
-    # decrypt with code (0x3A / 0x38) then XOR with tmp
+    # Step 2: Decrypt with the type-specific code (0x38 or 0x3A)
     code = 0x3A if mkey.type == 2 else 0x38
-    dec2 = _crypto_cmd_decrypt_iv0(dec, code)
+    decrypted = _crypto_cmd_decrypt_iv0(bytes(mac_working), code)
 
+    # Step 3: Recover vkey = expected_MAC XOR decrypted_MAC
     for i in range(16):
-        vkey_out[i] = tmp[i] ^ dec2[i]
+        vkey_out[i] = tmp[i] ^ decrypted[i]
+
     return 0
 
 # ============================================================
@@ -410,12 +452,28 @@ def BBCipherFinal(ckey: CipherKey) -> int:
 
 def get_secure_install_id(buf: bytes, type_: int, id_out: bytearray) -> int:
     tmp_id = bytearray(16)
+    
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, 0x70)
     bbmac_getkey(mkey, buf[0x70:0x70 + 16], tmp_id)
     id_out[:16] = tmp_id
     return 0
+
+def pops_get_secure_install_id(buf: bytes) -> bytes | int:
+    tmp_id = bytearray(16)
+    id_out = bytearray(16)
+    type_ = 3
+    
+    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    
+    BBMacInit(mkey, type_)
+    BBMacUpdate(mkey, buf[0x10:0x70], 0x60)
+    bbmac_getkey(mkey, buf[0x70:], tmp_id)
+    id_out[:16] = tmp_id
+    
+    return id_out
 
 def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes | int:
     if len(vkey) != 16:
@@ -468,6 +526,34 @@ def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: in
         return ERROR_BROKEN_DATA
 
     return 0
+
+def pops_man_doc_check_data(buf: bytes, digest: bytes, secure_install_id: bytes) -> bool:
+    if len(digest) != 16:
+        return False
+
+    size = len(buf)
+    vkey = secure_install_id
+
+    if vkey is None or len(vkey) != 16:
+        return False
+
+    mkey = MACKey(
+        type=0,           # will be set by Init
+        key=bytearray(16),
+        pad=bytearray(16),
+        pad_size=0
+    )
+    
+    if BBMacInit(mkey, 3) != 0:
+        return False
+    
+    if BBMacUpdate(mkey, buf, size) != 0:
+        return False
+    
+    ret = BBMacFinal2(mkey, digest, vkey)
+    print(mkey, digest, vkey)
+    
+    return ret == 0
 
 def boxbb_decrypt(buf: bytearray, size: int, seed: int, vkey: bytes, hdr_key: bytes, type_: int) -> int:
     if len(vkey) != 16 or len(hdr_key) != 16:
