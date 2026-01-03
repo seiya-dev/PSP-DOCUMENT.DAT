@@ -5,9 +5,11 @@ from io import BytesIO
 from pathlib import Path
 from Crypto.Cipher import DES
 from pspdoclib.hexdump import hexdump
+# from pspdoclib.bbox import boxbb_mac_gen
 
 ###################
 
+POPS_VERSION_KEY = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 DES_KEY = bytes.fromhex('39F7EFA16CCE5F4C')
 DES_IV  = bytes.fromhex('A819C4F5E154E30B')
 
@@ -80,7 +82,8 @@ class PS1Doc(object):
         self.f.close()
         
         # DOC HEADER
-        header_out = sliceBuf(in_buf, 0x00, 0x60)
+        header_out  = sliceBuf(in_buf, 0x00, 0x60)
+        header_mac  = sliceBuf(in_buf, 0x60, 0x10) # 0x70 MAC HASH, TODO: Figure out how to calculate it
         header_hash = sliceBuf(in_buf, 0x70, 0x10)
         
         if is_enc == 1:
@@ -122,6 +125,7 @@ class PS1Doc(object):
         
         info_block_size = 0x1f3e8 if self.data.header.page_limit == 999 else 0x31e8
         info_block = sliceBuf(in_buf, 0x80, info_block_size)
+        info_mac   = sliceBuf(in_buf, 0x80 + info_block_size, 0x10)
         info_hash  = sliceBuf(in_buf, 0x80 + info_block_size + 0x10, 0x10)
         
         if is_enc == 1:
@@ -183,12 +187,13 @@ class PS1Doc(object):
             
             if is_enc == 1:
                 page_buf = bytearray(sliceBuf(in_buf, info.offset-0x10, info.size))
-                page_hash = page_buf[-0x20:]
-                page_buf = page_buf[:-0x20]
+                page_mac  = page_buf[-0x20:][:0x10]
+                page_hash = page_buf[-0x20:][-0x10:]
+                page_buf  = page_buf[:-0x20]
                 
-                if sha1hash(page_buf) != page_hash[-0x10:]:
+                if sha1hash(page_buf) != page_hash:
                     print(f'  > PAGE {page_index+1:03d} SHA1 HASH MISMATCH')
-                    data_buf += page_buf + page_hash
+                    data_buf += page_buf + page_mac + page_hash
                     is_proper_doc = 0
                     continue
                 
