@@ -151,9 +151,9 @@ class PSPDoc(object):
         if self.data.header.page_limit > 99:
             metadata_size = 0x1f4b8 - 0x00a0 - 0x0030
         
-        check_metadata_psp = sha1hmac(HMAC_KEY_PSP, self.f_dat[0x00a0:0x00a0+metadata_size])
-        check_metadata_ps3 = sha1hmac(HMAC_KEY_PS3, self.f_dat[0x00a0:0x00a0+metadata_size])
         sum_metadata_offset = 0x00a0 + metadata_size
+        check_metadata_psp = sha1hmac(HMAC_KEY_PSP, self.f_dat[0x00a0:sum_metadata_offset])
+        check_metadata_ps3 = sha1hmac(HMAC_KEY_PS3, self.f_dat[0x00a0:sum_metadata_offset])
         
         if sliceBuf(self.f_dat, sum_metadata_offset, 0x10) != bytes(0x10):
             print(f'  > PADDING AT 0x{sum_metadata_offset:08x} IS MISSING.')
@@ -166,7 +166,7 @@ class PSPDoc(object):
             print(f'  > SHA1-HMAC METADATA MISMATCH.')
             return None
         
-        pages_metadata = desDecrypt(dec_key, self.f_dat[0x00a0:0x00a0+metadata_size])
+        pages_metadata = desDecrypt(dec_key, self.f_dat[0x00a0:sum_metadata_offset])
         
         if sliceBuf(pages_metadata, 0x0, 0x4) != bytes.fromhex('FFFFFFFF'):
             print('  > MARKER MISMATCH')

@@ -130,8 +130,8 @@ class CipherKey:
 # MAC functions
 # ============================================================
 
-def BBMacInit(mkey: MACKey, type: int) -> int:
-    mkey.type = int(type)
+def BBMacInit(mkey: MACKey, type_: int) -> int:
+    mkey.type = int(type_)
     mkey.pad_size = 0
     mkey.key[:] = b"\x00" * 16
     mkey.pad[:] = b"\x00" * 16
@@ -287,8 +287,8 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
 BB_CIPHER_ENCRYPT = 1
 BB_CIPHER_DECRYPT = 2
 
-def BBCipherInit(ckey: CipherKey, type: int, mode: int, header_key: bytearray, version_key: Optional[bytes], seed: int) -> int:
-    ckey.type = int(type)
+def BBCipherInit(ckey: CipherKey, type_: int, mode: int, header_key: bytearray, version_key: Optional[bytes], seed: int) -> int:
+    ckey.type = int(type_)
 
     if mode == BB_CIPHER_DECRYPT:
         ckey.seed = int(seed) + 1
@@ -406,16 +406,40 @@ def BBCipherFinal(ckey: CipherKey) -> int:
 # bbox_api
 # ============================================================
 
-def get_secure_install_id(buf: bytes, type: int, id_out: bytearray) -> int:
+def get_secure_install_id(buf: bytes, type_: int, id_out: bytearray) -> int:
     tmp_id = bytearray(16)
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
-    BBMacInit(mkey, type)
+    BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, 0x70)
     bbmac_getkey(mkey, buf[0x70:0x70 + 16], tmp_id)
     id_out[:16] = tmp_id
     return 0
 
-def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type: int) -> int:
+def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes | int:
+    if len(vkey) != 16:
+        return ERROR_INVALID_ARG
+    
+    size = len(buf)
+    buf = bytes(buf)
+    tmp = bytearray(16)
+    
+    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    
+    retv = BBMacInit(mkey, type_)
+    if retv < 0:
+        return retv
+    
+    retv = BBMacUpdate(mkey, buf, size)
+    if retv < 0:
+        return retv
+    
+    retv = BBMacFinal(mkey, tmp, vkey)
+    if retv < 0:
+        return retv
+    
+    return bytes(tmp)
+
+def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int) -> int:
     if digest is None:
         return ERROR_INVALID_ARG
     if len(digest) != 16:
@@ -426,7 +450,7 @@ def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type: int
     tmp = bytearray(16)
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
 
-    retv = BBMacInit(mkey, type)
+    retv = BBMacInit(mkey, type_)
     if retv < 0:
         return retv
 
@@ -443,14 +467,14 @@ def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type: int
 
     return 0
 
-def boxbb_decrypt(buf: bytearray, size: int, seed: int, vkey: bytes, hdr_key: bytes, type: int) -> int:
+def boxbb_decrypt(buf: bytearray, size: int, seed: int, vkey: bytes, hdr_key: bytes, type_: int) -> int:
     if len(vkey) != 16 or len(hdr_key) != 16:
         return ERROR_INVALID_ARG
 
     ckey = CipherKey(type=0, seed=0, key=bytearray(16))
     header_key_ba = bytearray(hdr_key)
 
-    retv = BBCipherInit(ckey, type, BB_CIPHER_DECRYPT, header_key_ba, vkey, seed)
+    retv = BBCipherInit(ckey, type_, BB_CIPHER_DECRYPT, header_key_ba, vkey, seed)
     if retv < 0:
         return retv
 
