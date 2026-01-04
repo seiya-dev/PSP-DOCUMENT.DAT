@@ -93,9 +93,10 @@ class PS1Doc(object):
         if is_enc == 1:
             print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
             
-            if header_mac != boxbb_mac_gen_enc(header_out, install_id):
-                print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
-                return None
+            if header_mac != bytes(0x10):
+                if header_mac != boxbb_mac_gen_enc(header_out, install_id):
+                    print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
+                    return None
             
             if header_hash != sha1hash(header_out):
                 print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
@@ -139,11 +140,12 @@ class PS1Doc(object):
         info_hash  = sliceBuf(in_buf, 0x80 + info_block_size + 0x10, 0x10)
         
         if is_enc == 1:
-            if info_mac != boxbb_mac_gen_enc(info_block, install_id):
-                print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
-                return None
+            if info_mac != bytes(0x10):
+                if info_mac != boxbb_mac_gen_enc(info_block, install_id):
+                    print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
+                    return None
             
-            if sha1hash(info_block) != info_hash:
+            if info_hash != sha1hash(info_block):
                 print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
                 return None
             
@@ -205,13 +207,14 @@ class PS1Doc(object):
                 page_hash = page_buf[-0x20:][-0x10:]
                 page_buf  = page_buf[:-0x20]
                 
-                if page_mac != boxbb_mac_gen_enc(page_buf, install_id):
-                    print(f'  > PAGE {page_index+1:03d} MAC HASH MISMATCH')
-                    data_buf += page_buf + page_mac + page_hash
-                    is_proper_doc = 0
-                    return None
+                if page_mac != bytes(0x10):
+                    if page_mac != boxbb_mac_gen_enc(page_buf, install_id):
+                        print(f'  > PAGE {page_index+1:03d} MAC HASH MISMATCH')
+                        data_buf += page_buf + page_mac + page_hash
+                        is_proper_doc = 0
+                        return None
                 
-                if sha1hash(page_buf) != page_hash:
+                if page_hash != sha1hash(page_buf):
                     print(f'  > PAGE {page_index+1:03d} SHA1 HASH MISMATCH')
                     data_buf += page_buf + page_mac + page_hash
                     is_proper_doc = 0
