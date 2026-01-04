@@ -265,13 +265,12 @@ def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
         return ERROR_INVALID_ARG
 
     tmp = bytearray(16)
+    type_ = mkey.type
     ret = BBMacFinal(mkey, tmp, vkey)
     if ret != 0:
         return ret, -1
 
     kbuf = bytearray(16)
-
-    type_ = mkey.type
 
     if type_ == 3:
         dec = _crypto_cmd_decrypt_iv0(bbmac, 0x63)
@@ -280,9 +279,7 @@ def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
         # For other types (mostly 1 and 2) → use bbmac as-is
         kbuf[:] = bbmac
 
-    # Now compare the decrypted/processed MAC with the freshly computed one
-    return kbuf, tmp
-    
+    # Now compare the decrypted/processed MAC with the freshly computed one    
     match = True
     for i in range(16):
         if kbuf[i] != tmp[i]:
@@ -303,6 +300,7 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
 
     # Step 1: Compute the expected MAC value (without version key)
     tmp = bytearray(16)
+    type_ = mkey.type
     ret = BBMacFinal(mkey, tmp, None)
     if ret != 0:
         return ret
@@ -311,11 +309,11 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
     mac_working = bytearray(bbmac)
 
     # Special handling for type 3: MAC is pre-encrypted with keyseed 0x63
-    if mkey.type == 3:
+    if type_ == 3:
         mac_working[:] = _crypto_cmd_decrypt_iv0(bytes(mac_working), 0x63)
 
     # Step 2: Decrypt with the type-specific code (0x38 or 0x3A)
-    code = 0x3A if mkey.type == 2 else 0x38
+    code = 0x3A if type_ == 2 else 0x38
     decrypted = _crypto_cmd_decrypt_iv0(bytes(mac_working), code)
 
     # Step 3: Recover vkey = expected_MAC XOR decrypted_MAC
@@ -461,7 +459,7 @@ def get_secure_install_id(buf: bytes, type_: int, id_out: bytearray) -> int:
     id_out[:16] = tmp_id
     return 0
 
-def pops_get_secure_install_id(buf: bytes) -> bytes | int:
+def pops_get_secure_install_id(buf: bytes) -> bytes:
     tmp_id = bytearray(16)
     id_out = bytearray(16)
     type_ = 3
@@ -469,15 +467,15 @@ def pops_get_secure_install_id(buf: bytes) -> bytes | int:
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
     
     BBMacInit(mkey, type_)
-    BBMacUpdate(mkey, buf[0x10:0x70], 0x60)
-    bbmac_getkey(mkey, buf[0x70:], tmp_id)
+    BBMacUpdate(mkey, buf, 0x60)
+    bbmac_getkey(mkey, buf[0x60:0x70], tmp_id)
     id_out[:16] = tmp_id
     
     return id_out
 
-def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes | int:
+def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     if len(vkey) != 16:
-        return ERROR_INVALID_ARG
+        return bytes(0x10)
     
     size = len(buf)
     buf = bytes(buf)
@@ -487,17 +485,21 @@ def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes | int:
     
     retv = BBMacInit(mkey, type_)
     if retv < 0:
-        return retv
+        return bytes(0x10)
     
     retv = BBMacUpdate(mkey, buf, size)
     if retv < 0:
-        return retv
+        return bytes(0x10)
     
     retv = BBMacFinal(mkey, tmp, vkey)
     if retv < 0:
-        return retv
+        return bytes(0x10)
     
     return bytes(tmp)
+
+def boxbb_mac_gen_enc(buf: bytes, vkey: bytes) -> bytes:
+    get_bb_mac =  boxbb_mac_gen(buf, vkey, 3)
+    return _crypto_cmd_encrypt_iv0(get_bb_mac, 0x63)
 
 def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int) -> int:
     if digest is None:
@@ -537,12 +539,7 @@ def pops_man_doc_check_data(buf: bytes, digest: bytes, secure_install_id: bytes)
     if vkey is None or len(vkey) != 16:
         return False
 
-    mkey = MACKey(
-        type=0,           # will be set by Init
-        key=bytearray(16),
-        pad=bytearray(16),
-        pad_size=0
-    )
+    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
     
     if BBMacInit(mkey, 3) != 0:
         return False
@@ -551,7 +548,6 @@ def pops_man_doc_check_data(buf: bytes, digest: bytes, secure_install_id: bytes)
         return False
     
     ret = BBMacFinal2(mkey, digest, vkey)
-    print(mkey, digest, vkey)
     
     return ret == 0
 

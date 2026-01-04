@@ -15,8 +15,6 @@ The script will create an `out_png_ps1` folder containing all pages.
 
 Additionally, the decrypted `DOCUMENT_DEC.DAT` (only for PSP CFW) file will be saved in the `out_dat_ps1` folder.
 
-Note: The script does not perform MAC hash verification for encrypted `DOCUMENT.DAT`
-
 ## app_psp.py
 * For `PSP Game` and `Minis` manuals.
 
