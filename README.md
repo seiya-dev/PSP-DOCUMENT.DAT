@@ -1,13 +1,13 @@
 # PSP DOCUMENT.DAT Decrypter/Unpacker
 
-Scripts for decrypting and unpacking png from `PS1 on PSP/PS3`, `PSP` and `Minis` manuals.
+Scripts for decrypting and unpacking png from `PS1 on PSP/ePSP/PS3`, `PSP` and `Minis` manuals.
 
 Both scripts support manuals with more than 100 pages.
 
 To use the scripts, `Python 3.12+` is required, and the `pycryptodome` package must be installed.
 
 ## app_ps1.py
-* For `PS1 on PSP/PS3`
+* For `PS1 on PSP/ePSP/PS3`
 
 Copy DOCUMENT.DAT files into the `dat_ps1docs` folder using any filename with the `.DAT` extension.
 
