@@ -13,7 +13,6 @@ from pspdoclib.bbox import (
 
 ###################
 
-POPS_VERSION_KEY = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 DES_KEY = bytes.fromhex('39F7EFA16CCE5F4C')
 DES_IV  = bytes.fromhex('A819C4F5E154E30B')
 
@@ -92,7 +91,7 @@ class PS1Doc(object):
         install_id  = pops_get_secure_install_id(in_buf)
 
         if is_enc == 1:
-            print(f'  > Secure Install Id: {install_id.hex().upper()}')
+            print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
             
             if header_mac != boxbb_mac_gen_enc(header_out, install_id):
                 print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
