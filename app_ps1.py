@@ -92,14 +92,16 @@ class PS1Doc(object):
 
         if is_enc == 1:
             print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
+            if header_mac == bytes(0x10):
+                print('  > WARN: DOC HEADER DOES NOT HAVE PROPER MAC HASH')
             
             if header_mac != bytes(0x10):
                 if header_mac != boxbb_mac_gen_enc(header_out, install_id):
-                    print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
+                    print(f'  > BAD ENCRYPTED BLOB: DOC HEADER (MAC HASH CHECK FAILED)')
                     return None
             
             if header_hash != sha1hash(header_out):
-                print(f'  > BAD ENCRYPTED BLOB: DOC HEADER')
+                print(f'  > BAD ENCRYPTED BLOB: DOC HEADER (SHA1 HASH CHECK FAILED)')
                 return None
             
             header_out = desDecrypt(header_out)
@@ -140,13 +142,16 @@ class PS1Doc(object):
         info_hash  = sliceBuf(in_buf, 0x80 + info_block_size + 0x10, 0x10)
         
         if is_enc == 1:
+            if header_mac == bytes(0x10):
+                print('  > WARN: INFO BLOCK DOES NOT HAVE PROPER MAC HASH')
+            
             if info_mac != bytes(0x10):
                 if info_mac != boxbb_mac_gen_enc(info_block, install_id):
-                    print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
+                    print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK (MAC HASH CHECK FAILED)')
                     return None
             
             if info_hash != sha1hash(info_block):
-                print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK')
+                print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK (SHA1 HASH CHECK FAILED)')
                 return None
             
             self.data.sha1sum.info_block = info_hash.hex()
@@ -206,6 +211,9 @@ class PS1Doc(object):
                 page_mac  = page_buf[-0x20:][:0x10]
                 page_hash = page_buf[-0x20:][-0x10:]
                 page_buf  = page_buf[:-0x20]
+                
+                if header_mac == bytes(0x10):
+                    print(f'  > WARN: PAGE {page_index+1:03d} DOES NOT HAVE PROPER MAC HASH')
                 
                 if page_mac != bytes(0x10):
                     if page_mac != boxbb_mac_gen_enc(page_buf, install_id):
