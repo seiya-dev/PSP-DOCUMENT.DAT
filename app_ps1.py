@@ -111,7 +111,7 @@ class PS1Doc(object):
             print(f'  > BAD FILE VERSION ID')
             return None
         
-        if is_enc != 1 and sliceBuf(header_out, 0x0060, 0x0020) != bytes(0x0020):
+        if is_enc != 1 and sliceBuf(in_buf, 0x0060, 0x0020) != bytes(0x0020):
             print(f'  > BAD DOC NULL HASH DATA')
             return None
         
