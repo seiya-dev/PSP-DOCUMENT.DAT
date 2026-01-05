@@ -7,7 +7,7 @@ Both scripts support manuals with more than 100 pages.
 To use the scripts, `Python 3.12+` is required, and the `pycryptodome` package must be installed.
 
 ## app_ps1.py
-* For `PS1 on PSP/ePSP/PS3`
+* For `PS1 on PSP/ePSP/PS3`manuals.
 
 Copy DOCUMENT.DAT files into the `dat_ps1docs` folder using any filename with the `.DAT` extension.
 
@@ -27,7 +27,7 @@ Additionally, a re-encrypted `DOCUMENT.DAT` using the default key (to get rid of
 
 ## DOCUMENT.DAT format
 
-For format summary of the PS1 / PSP DOCUMENT.DAT read [README_FORMAT.md](README_FORMAT.md)
+For format summary of the PS1 / PSP DOCUMENT.DAT read [README_FORMAT.md](README_FORMAT.md).
 
 ## Creating DOCUMENT.DAT
 
