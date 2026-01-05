@@ -17,7 +17,7 @@ def free_edata(name: str, buf: bytes):
     # DOCINFO.EDAT
     # Byte Offset Field        Length    Values (most likely)
     # 0x00-0x07   magic          8 bytes  b'\0PSPEDAT'
-    # 0x08-0x0B   key_index      4 bytes  0x02 0x00 0x00 0x00
+    # 0x08-0x0B   key_index      4 bytes  0x02 0x00 0x00 0x00 (MAC type 3), 0x00 0x00 0x00 0x01 (FREE)
     # 0x0C-0x0D   data_offset    2 bytes  0x80
     # 0x0E        data_type      1 byte   0x00
     # 0x0F        version        1 byte   0x00
