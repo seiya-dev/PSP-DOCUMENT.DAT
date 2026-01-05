@@ -75,13 +75,13 @@
 | offset PS1                 | offset PSP                 | Size             | Name           | Remarks PS1 on PSP/ePSP/PS3                                                                   | Remarks PSP                                                                               |
 |----------------------------|----------------------------|------------------|----------------|-----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
 | 0x0000                     | 0x0000                     | 0x20             | file_header    | File header, encrypted                                                                        | File header, encrypted                                                                    |
-| 0x0020                     | 0x0020                     | k * 0x08         | enc_chunk_info | List of encrypted chunk descriptors. Each descriptor is 8 bytes                               | List of encrypted chunk descriptors. Each descriptor is 8 bytes                           |
+| 0x0020                     | 0x0020                     | k * 0x08         | enc_chunk_info | List of encrypted chunk descriptors. Each descriptor is 8 bytes, encrypted                    | List of encrypted chunk descriptors. Each descriptor is 8 bytes, encrypted                |
 | 0x0020 + k*0x08            | 0x0020 + k*0x08            | n                | png_file       | PNG file                                                                                      | PNG file                                                                                  |
 | 0x0020 + k*0x08 + n        | 0x0020 + k*0x08 + n        | 0x10             | mac_hash       | BB MAC of (File Header + Chunk Info + PNG File) using Secure Install ID as key via sceIoIoctl | Zeroed                                                                                    |
 | 0x0020 + k*0x08 + n + 0x10 | 0x0020 + k*0x08 + n + 0x10 | 0x10             | digest         | First 16 bytes of SHA-1 from (File Header + Chunk Info + PNG File)                            | First 16 bytes of HMAC-SHA-1 with PSP HMAC Key from (File Header + Chunk Info + PNG File) |
 |                            | 0x0020 + k*0x08 + n + 0x20 | 0x10             | digest_ps3     |                                                                                               | First 16 bytes of HMAC-SHA-1 with PS3 HMAC Key from (File Header + Chunk Info + PNG File) |
 
-### File Header
+### File Header (Decrypted)
 
 | offset  | Size | Name             | Remarks                                                                                        |
 |---------|------|------------------|------------------------------------------------------------------------------------------------|
@@ -90,7 +90,7 @@
 | 0x0008  | 0x04 | enc_chunks_count | Number of encrypted file chunks. Can be 0.                                                     |
 | 0x000C  | 0x14 | unknown          | Zeroed                                                                                         |
 
-### Encrypted Chunk Info
+### Encrypted Chunk Info entry
 
 | offset  | Size | Name   | Remarks                                                     |
 |---------|------|------- |-------------------------------------------------------------|
