@@ -14,7 +14,7 @@ def free_edata(name: str, buf: bytes):
     if buf[:0x08] != b'\x00PSPEDAT':
         return None
     
-    # PSPEDAT
+    # DOCINFO.EDAT
     # Byte Offset Field        Length    Values (most likely)
     # 0x00-0x07   magic        08 bytes  b'\0PSPEDAT'
     # 0x08-0x0B   key_index    04 bytes  0x02 0x00 0x00 0x00
@@ -27,10 +27,10 @@ def free_edata(name: str, buf: bytes):
     # 0x58-0x7F   ecdsa_sign   40 bytes  ECDSA sign
     # 0x80...     PGD File     ?? bytes  PGD File
     
-    # PGD
+    # PGD File inside DOCINFO.EDAT
     # Byte Offset Field        Length    Values (most likely)
     # 0x00-0x03   magic        04 bytes  b'\0PGD'
-    # 0x04-0x07   key_index    04 bytes  Key Index?
+    # 0x04-0x07   key_index    04 bytes  Key Index
     # 0x08-0x0B   drm_type     04 bytes  DRM type/version
     # 0x0C-0x0F   padding      04 bytes  Padding
     # 0x10-0x1F                          Header Key
@@ -38,8 +38,8 @@ def free_edata(name: str, buf: bytes):
     # 0x30-0x3F                          Encrypted data header start
     # 0x40-0x4F                          Encrypted data header 
     # 0x50-0x5F                          Encrypted data header end
-    # 0x60-0x6F                          Data header MAC Hash
-    # 0x70-0x7F                          Secure Install ID MAC Hash
+    # 0x60-0x6F                          Data Header BB MAC Hash
+    # 0x70-0x7F                          Secure Install ID BB MAC Hash
     # 0x80-0x8F                          DNAS MAC Hash
     # 0x90-0x9F                          Encrypted data
     # 0xA0-0xAF                          Garbage / Padding
