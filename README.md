@@ -6,7 +6,7 @@ Both scripts support manuals with more than 100 pages.
 
 To use the scripts, `Python 3.12+` is required, and the `pycryptodome` package must be installed.
 
-## app_ps1.py
+## decrypt_document_ps1.py
 * For `PS1 on PSP/ePSP/PS3`manuals.
 
 Copy DOCUMENT.DAT files into the `dat_ps1docs` folder using any filename with the `.DAT` extension.
@@ -15,7 +15,7 @@ The script will create an `out_png_ps1` folder containing all pages.
 
 Additionally, the decrypted `DOCUMENT_DEC.DAT` (only for PSP CFW) file will be saved in the `out_dat_ps1` folder.
 
-## app_psp.py
+## decrypt_document_psp.py
 * For `PSP Game` and `Minis` manuals.
 
 Copy `DOCUMENT.DAT` and `DOCINFO.EDAT` (if present) into the `dat_pspdocs` folder, adding a prefix to the filenames
