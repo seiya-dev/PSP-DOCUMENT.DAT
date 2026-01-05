@@ -64,10 +64,10 @@
 |---------|------|------------------|-------------------------------------------------------------------------|
 | 0x0000  | 0x04 | offset           | File pointer for PSP image (points to offset in encrypted DOCUMENT.DAT) |
 | 0x0004  | 0x08 | unknown          | Zeroed                                                                  |
-| 0x000C  | 0x04 | size             | PSP File entry size + hashes                                            |
+| 0x000C  | 0x04 | size             | PSP File entry size (including hashes)                                  |
 | 0x0010  | 0x04 | offset_ps3       | File pointer for PS3 image (points to offset in encrypted DOCUMENT.DAT) |
 | 0x0014  | 0x08 | unknown          | Zeroed                                                                  |
-| 0x001C  | 0x04 | size_ps3         | PS3 File entry size + hashes                                            |
+| 0x001C  | 0x04 | size_ps3         | PS3 File entry size (including hashes)                                  |
 | 0x0020  | 0x60 | unknown          | Zeroed                                                                  |
 
 ## Page / File Entry
