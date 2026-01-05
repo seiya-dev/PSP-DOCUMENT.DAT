@@ -27,7 +27,7 @@
 
 * Note 1: For PS1 DOCUMENT.DAT - "mac_hash" used in PSP, "digest" used in ePSP/PS3
 
-* Note 2: For PSP DOCUMENT.DAT - "digest" used in PSP, "digest_ps3" used in ePSP/PS3
+* Note 2: For PSP DOCUMENT.DAT - "digest" used in PSP, "digest_ps3" used in ePSP/PS3 (Need be checked)
 
 ### Header Data (Decrypted)
 
