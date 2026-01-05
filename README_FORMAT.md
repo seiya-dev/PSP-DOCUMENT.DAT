@@ -43,7 +43,7 @@
 
 | offset PS1       | offset PSP       | Size             | Name       | Remarks PS1 on PSP/ePSP/PS3                                                  | Remarks PSP                                                              |
 |------------------|------------------|------------------|------------|------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| 0x0090           | 0x0100           | 0x31E8 / 0x1F3E8 | info_block | Encrypted Info Block                                                         | Encrypted Info Block                                                     |
+| 0x0090           | 0x00A0           | 0x31E8 / 0x1F3E8 | info_block | Encrypted Info Block                                                         | Encrypted Info Block                                                     |
 | 0x3278 / 0x1F478 | 0x3288 / 0x1F488 | 0x10             | mac_hash   | BB MAC of Encrypted Info Block using Secure Install ID as key via sceIoIoctl | Zeroed                                                                   |
 | 0x3288 / 0x1F488 | 0x3298 / 0x1F498 | 0x10             | digest     | First 16 bytes of SHA-1 from Encrypted Info Block                            | First 16 bytes of HMAC-SHA-1 with PSP HMAC Key from Encrypted Info Block |
 |                  | 0x32A8 / 0x1F4A8 | 0x10             | digest_ps3 |                                                                              | First 16 bytes of HMAC-SHA-1 with PS3 HMAC Key from Encrypted Info Block |
