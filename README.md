@@ -25,6 +25,10 @@ The script will create an `out_png_psp` folder containing all pages.
 
 Additionally, a re-encrypted `DOCUMENT.DAT` using the default key (to get rid of the `DOCINFO.EDAT` file requirement) will be saved in the `out_dat_psp` folder.
 
-## DOCUMENT.DAT format 
+## DOCUMENT.DAT format
 
 For format summary of the PS1 / PSP DOCUMENT.DAT read [README_FORMAT.md](README_FORMAT.md)
+
+## Creating DOCUMENT.DAT
+
+For creating PS1 DOCUMENT.DAT file you can use [github.com/sahlberg/pop-fe](pop-fe) tool.
