@@ -36,7 +36,7 @@ def sha1hmac(key: bytes, data: bytes) -> bytes:
     return hmac.new(key, data, hashlib.sha1).digest()[:0x10]
 
 def gen_pad(buf: bytes, block_size: int = 8) -> bytes:
-    return buf + b"\x00" * (-len(buf) % block_size)
+    return buf + b'\x00' * (-len(buf) % block_size)
 
 ###################
 
@@ -73,27 +73,25 @@ def encrypt_document(gameid, pages):
     struct.pack_into('<I', info_buffer, ps3_page_count_offset, page_count)
     
     for i, p in enumerate(pages):
-        if i < 999:
-            page_len = 0x20 + len(p) + 0x30
-            struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x00, page_offset)
-            struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x0c, page_len)
-            struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x10, page_offset)
-            struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x1c, page_len)
-            page_offset += page_len
+        page_len = 0x20 + len(p) + 0x30
+        struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x00, page_offset)
+        struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x0c, page_len)
+        struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x10, page_offset)
+        struct.pack_into('<I', info_buffer, 0x08 + i * 0x80 + 0x1c, page_len)
+        page_offset += page_len
     
     info_buffer = desEncrypt(info_buffer)
     pgd_buf += info_buffer + bytes(0x10) + sha1hmac(HMAC_KEY_PSP, info_buffer) + sha1hmac(HMAC_KEY_PS3, info_buffer)
     
     # File data
     for i, p in enumerate(pages):
-        if i < 999:
-            print(f'  > ENCRYPTING AND WRITING PAGE {i+1:03d}')
-            page_len = 0x20 + len(p) + 0x30
-            page_info_head = bytearray(0x20)
-            struct.pack_into('<I', page_info_head, 0, page_len)
-            
-            p = desEncrypt(page_info_head) + p
-            pgd_buf += p + bytes(0x10) + sha1hmac(HMAC_KEY_PSP, p) + sha1hmac(HMAC_KEY_PS3, p)
+        print(f'  > ENCRYPTING AND WRITING PAGE {i+1:03d}')
+        page_len = 0x20 + len(p) + 0x30
+        page_info_head = bytearray(0x20)
+        struct.pack_into('<I', page_info_head, 0, page_len)
+        
+        p = desEncrypt(page_info_head) + p
+        pgd_buf += p + bytes(0x10) + sha1hmac(HMAC_KEY_PSP, p) + sha1hmac(HMAC_KEY_PS3, p)
     
     return pgd_buf
 
@@ -117,10 +115,11 @@ if __name__ == "__main__":
     print('  > ENCRYPT: ', args.document)
     
     pages = []
-    for png in sorted(Path(args.directory).glob('*.png')):
-        buffer = Path(png).read_bytes()
-        pages.append(gen_pad(buffer))
+    for i, png in enumerate(sorted(Path(args.directory).glob('*.png'))):
+        if i+1 < 1000:
+            buffer = Path(png).read_bytes()
+            pages.append(gen_pad(buffer))
     
-    pgd = encrypt_document(args.gameid if args.gameid else 'UNKN00000', pages)
-    Path(args.document).write_bytes(pgd)
-    sys.exit()
+    if len(pages) > 0:
+        pgd = encrypt_document(args.gameid if args.gameid else 'UNKN00000', pages)
+        Path(args.document).write_bytes(pgd)
