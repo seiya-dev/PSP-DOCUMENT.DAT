@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import re
 import struct
 import argparse
 
@@ -12,6 +13,7 @@ from Crypto.Cipher import DES
 
 ###################
 
+ID_PATTERN   = re.compile(r"^[A-Za-z]{4}\d{5}$")
 HMAC_KEY_PSP = bytes([0x4D, 0x1B, 0x6B, 0x12, 0x69, 0xDD, 0xD2, 0x2F, 0xAA, 0xE1, 0xF5, 0x42, 0x07, 0xE7, 0x98, 0xB5])
 HMAC_KEY_PS3 = bytes([0xEF, 0x69, 0x0E, 0xC0, 0xE0, 0xBF, 0xA4, 0x1F, 0x08, 0x45, 0x5B, 0xD0, 0x38, 0xEB, 0x87, 0x62])
 DES_KEY = bytes([0xDA, 0x39, 0x23, 0xEF, 0x9C, 0x61, 0xB9, 0x30])
@@ -111,5 +113,7 @@ if __name__ == "__main__":
             pages.append(gen_pad(buffer))
     
     if len(pages) > 0:
-        pgd = encrypt_document(args.gameid if args.gameid else 'UNKN00000', pages)
+        args.gameid = args.gameid if bool(ID_PATTERN.fullmatch(args.gameid)) else 'UNKN00000'
+        
+        pgd = encrypt_document(args.gameid, pages)
         Path(args.document).write_bytes(pgd)

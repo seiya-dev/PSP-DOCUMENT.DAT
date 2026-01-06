@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import re
 import struct
 import argparse
 
@@ -17,13 +18,15 @@ from pspdoclib.bbox import (
 
 DES_KEY = bytes.fromhex('39F7EFA16CCE5F4C')
 DES_IV  = bytes.fromhex('A819C4F5E154E30B')
-INS_ID  = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
+
+ID_PATTERN   = re.compile(r"^[A-Za-z]{4}\d{5}$")
+INS_ID_BYTES = re.compile(r"^\s*(?:[0-9A-Fa-f]{2}\s*)+$")
 
 # NOTE 1: INS_ID (Secure Install ID) can be any for custom PS1 PBP.
 # For official PS1 PBPs Secure Install ID should match between official PS1 PBP and DOC file
 # (if not - you will get message about broken data)
 
-# NOTE 2: PSP with CFW will "crash" if Secure Install ID match between official PS1 PBP and DOC file
+# NOTE 2: PSP with CFW may "crash" if Secure Install ID match between official PS1 PBP and DOC file
 
 ###################
 
@@ -49,13 +52,13 @@ def create_header(gameid):
     struct.pack_into('<I', buf, 0x1c, 0 if len(pages) < 100 else 1)
     return buf
 
-def encrypt_document(gameid, pages):
+def encrypt_document(gameid, ins_id, pages):
     # PGD header
     pgd_buf = b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0'
     
     # DOC header
     doc_hdr = desEncrypt(create_header(gameid))
-    pgd_buf += doc_hdr + boxbb_mac_gen_enc(doc_hdr, INS_ID) + sha1hash(doc_hdr)
+    pgd_buf += doc_hdr + boxbb_mac_gen_enc(doc_hdr, ins_id) + sha1hash(doc_hdr)
     
     # Info Block
     # file data starts at 0x32b8 / 0x1f4b8
@@ -80,7 +83,7 @@ def encrypt_document(gameid, pages):
         page_offset += page_len
     
     info_buffer = desEncrypt(info_buffer)
-    pgd_buf += info_buffer + boxbb_mac_gen_enc(info_buffer, INS_ID) + sha1hash(info_buffer)
+    pgd_buf += info_buffer + boxbb_mac_gen_enc(info_buffer, ins_id) + sha1hash(info_buffer)
     
     # File data
     for i, p in enumerate(pages):
@@ -90,7 +93,7 @@ def encrypt_document(gameid, pages):
         struct.pack_into('<I', page_info_head, 0, page_len)
         
         p = desEncrypt(page_info_head) + p
-        pgd_buf += p + boxbb_mac_gen_enc(p, INS_ID) + sha1hash(p)
+        pgd_buf += p + boxbb_mac_gen_enc(p, ins_id) + sha1hash(p)
     
     return pgd_buf
 
@@ -98,9 +101,10 @@ if __name__ == "__main__":
     print(':: PSP DOCUMENT.DAT Creator ::')
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--document', help='Name of DOCUMENT.DAT')
-    parser.add_argument('--directory',help='Directory containing the source PNGs')
-    parser.add_argument('--gameid',   help='GameID')
+    parser.add_argument('--document',  help='Name of DOCUMENT.DAT')
+    parser.add_argument('--directory', help='Directory containing the source PNGs')
+    parser.add_argument('--gameid',    default='', help='GameID')
+    parser.add_argument('--insid',     default='', help='Set SecureInstallID')
     args = parser.parse_args()
 
     if not args.directory:
@@ -119,5 +123,8 @@ if __name__ == "__main__":
             pages.append(gen_pad(buffer))
     
     if len(pages) > 0:
-        pgd = encrypt_document(args.gameid if args.gameid else 'UNKN00000', pages)
+        args.gameid = args.gameid if bool(ID_PATTERN.fullmatch(args.gameid)) else 'UNKN00000'
+        args.insid  = bytes.fromhex(args.insid) if bool(INS_ID_BYTES.fullmatch(args.insid)) else bytes(0x10)
+        
+        pgd = encrypt_document(args.gameid, args.insid, pages)
         Path(args.document).write_bytes(pgd)
