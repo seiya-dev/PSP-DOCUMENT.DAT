@@ -48,7 +48,6 @@ class PS1Doc(object):
         self.udata = attrdict()
         
         self.data.header = attrdict()
-        self.data.sha1sum = attrdict()
         self.data.pages = attrdict()
         
         self.data.pages.info = list()
@@ -120,10 +119,7 @@ class PS1Doc(object):
         header_out += bytes(0x20)
         data_buf += header_out
         
-        self.data.header.sig     = sliceBuf(data_buf, 0x0000, 0x0004).decode('utf-8')
-        self.data.header.version = sliceBuf(data_buf, 0x0004, 0x0008).hex()
         self.data.header.code    = sliceBuf(data_buf, 0x000c, 0x0010).decode('utf-8').rstrip('\0')
-        self.data.sha1sum.header = header_hash.hex()
         
         self.data.header.pages_total = 0
         self.data.header.pages_total_ps3 = 0
@@ -149,7 +145,6 @@ class PS1Doc(object):
                 print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK (SHA1 HASH CHECK FAILED)')
                 return None
             
-            self.data.sha1sum.info_block = info_hash.hex()
             info_block = desDecrypt(info_block)
         
         if sliceBuf(info_block, 0x0, 0x4) != bytes.fromhex('FFFFFFFF'):
@@ -169,9 +164,9 @@ class PS1Doc(object):
             data_buf += entry_data
             
             page_info = attrdict()
-            page_info.offset     = b2i(sliceBuf(entry_data, 0x0000, 0x0008))
+            page_info.offset     = b2i(sliceBuf(entry_data, 0x0000, 0x0004))
             page_info.size       = b2i(sliceBuf(entry_data, 0x000c, 0x0004))
-            page_info.offset_ps3 = b2i(sliceBuf(entry_data, 0x0010, 0x0008))
+            page_info.offset_ps3 = b2i(sliceBuf(entry_data, 0x0010, 0x0004))
             page_info.size_ps3   = b2i(sliceBuf(entry_data, 0x001c, 0x0004))
             
             if page_info.offset > 0:
@@ -193,8 +188,6 @@ class PS1Doc(object):
         if self.data.header.pages_total_ps3 == 0:
             print(f'  > WARN: BAD DOCUMENT.DAT FORMAT!')
         
-        self.data.header.pop('sig')
-        self.data.header.pop('version')
         print('  > HEADER: ', self.data.header)
         # print('  > SHA1SUM:', self.data.sha1sum)
         

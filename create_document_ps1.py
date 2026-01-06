@@ -114,7 +114,7 @@ if __name__ == "__main__":
         print('  > MUST SPECIFY --document')
         os._exit(1)
     
-    print('  > ENCRYPT: ', args.document)
+    print('  > ENCRYPT:', args.document)
     
     pages = []
     for i, png in enumerate(sorted(Path(args.directory).glob('*.png'))):

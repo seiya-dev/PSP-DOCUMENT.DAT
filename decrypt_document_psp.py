@@ -137,8 +137,6 @@ class PSPDoc(object):
             data_buf += sha1hmac(HMAC_KEY_PSP, header_enc)
             data_buf += sha1hmac(HMAC_KEY_PS3, header_enc)
         
-        self.data.header.sig     = sliceBuf(header_out, 0x0000, 0x0004).decode('utf-8')
-        self.data.header.version = sliceBuf(header_out, 0x0004, 0x0008).hex()
         self.data.header.code    = sliceBuf(header_out, 0x000c, 0x0010).decode('utf-8').rstrip('\0')
         
         self.data.header.pages_total = 0
@@ -191,9 +189,9 @@ class PSPDoc(object):
             entry_data = sliceBuf(pages_metadata, 0x08 + i * 0x80, 0x80)
             
             page_info = attrdict()
-            page_info.offset     = b2i(sliceBuf(entry_data, 0x0000, 0x0008))
+            page_info.offset     = b2i(sliceBuf(entry_data, 0x0000, 0x0004))
             page_info.size       = b2i(sliceBuf(entry_data, 0x000c, 0x0004))
-            page_info.offset_ps3 = b2i(sliceBuf(entry_data, 0x0010, 0x0008))
+            page_info.offset_ps3 = b2i(sliceBuf(entry_data, 0x0010, 0x0004))
             page_info.size_ps3   = b2i(sliceBuf(entry_data, 0x001c, 0x0004))
             
             if page_info.offset != page_info.offset_ps3 or page_info.size != page_info.size_ps3:
@@ -203,8 +201,6 @@ class PSPDoc(object):
             if page_info.offset > 0:
                 self.data.pages.info.append(page_info)
         
-        self.data.header.pop('sig')
-        self.data.header.pop('version')
         print('  > HEADER:', self.data.header)
         #print(self.data.pages.info)
         
