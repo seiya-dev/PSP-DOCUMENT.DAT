@@ -99,7 +99,6 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--document', help='Name of DOCUMENT.DAT')
-    parser.add_argument('--output',   help='Output file')
     parser.add_argument('--directory',help='Directory containing the source PNGs')
     parser.add_argument('--gameid',   help='GameID')
     args = parser.parse_args()
