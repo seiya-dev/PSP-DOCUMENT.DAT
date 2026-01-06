@@ -542,9 +542,8 @@ class CryptoEngine:
         
         if h.ecdsa_hash == 1:
             raise NotImplementedError('CMD1 ecdsa_hash not implemented')
-            
             eh = Cmd1EcdsaHeader.parse(inbuf)
-            
+            """
             # CMD1 uses curve set "b1/N1/G1" and pub "Px1/Py1"
             ecdsa.ecdsa_set_curve(ecdsa.ec_p, ecdsa.ec_a, ecdsa.ec_b1, ecdsa.ec_N1, ecdsa.Gx1, ecdsa.Gy1)
             cryptoengine1_pub = ecdsa.Px1 + ecdsa.Py1  # 40 bytes expected
@@ -559,6 +558,7 @@ class CryptoEngine:
             data_hash = _sha1(inbuf[0x60:0x60 + 0x30 + chk_size + h.data_offset])
             if not ecdsa.ecdsa_verify(data_hash, eh.data_sig_r, eh.data_sig_s):
                 return CRYPTOENGINE_DATA_HASH_INVALID
+            """
         else:
             ret = self.CMD10_priv_sign_check(inbuf)
             if ret != CRYPTOENGINE_OPERATION_SUCCESS:
@@ -726,7 +726,7 @@ class CryptoEngine:
     
     def CMD12_ecdsa_gen_keys(self) -> bytes:
         raise NotImplementedError("CMD12_ecdsa_gen_keys not implemented")
-        
+        """
         ecdsa.ecdsa_set_curve(ecdsa.ec_p, ecdsa.ec_a, ecdsa.ec_b2, ecdsa.ec_N2, ecdsa.Gx2, ecdsa.Gy2)
         
         rnd = self.CMD14_prng()
@@ -738,10 +738,11 @@ class CryptoEngine:
             raise ValueError('ecdsa.ec_priv_to_pub(k) must return 40 bytes (x||y)')
         
         return priv + pub
+        """
     
     def CMD13_ecdsa_multiply_point(self, inbuf: bytes) -> bytes:
         raise NotImplementedError('CMD13_ecdsa_multiply_point not implemented')
-        
+        """
         if len(inbuf) < 0x3C:
             raise ValueError('CMD13 buffer too small')
         
@@ -756,10 +757,11 @@ class CryptoEngine:
         if len(outQ) != 40:
             raise ValueError('ecdsa.ec_pub_mult(k) must return 40 bytes (x||y)')
         return outQ
+        """
     
     def CMD16_ecdsa_sign(self, inbuf: bytes) -> bytes:
         raise NotImplementedError('CMD16_ecdsa_sign not implemented')
-        
+        """
         if len(inbuf) < 0x34:
             raise ValueError('CMD16 buffer too small')
         
@@ -776,10 +778,11 @@ class CryptoEngine:
         if len(r) != 20 or len(s) != 20:
             raise ValueError('ecdsa.ecdsa_sign(hash) must return (r,s) each 20 bytes')
         return r + s
+        """
     
     def CMD17_ecdsa_verify(self, inbuf: bytes) -> int:
         raise NotImplementedError('CMD17_ecdsa_verify not implemented')
-        
+        """
         if len(inbuf) < 0x64:
             return CRYPTOENGINE_INVALID_SIZE
         
@@ -793,6 +796,7 @@ class CryptoEngine:
         
         ok = ecdsa.ecdsa_verify(msg_hash, r, s)
         return CRYPTOENGINE_OPERATION_SUCCESS if ok else CRYPTOENGINE_SIG_CHECK_INVALID
+        """
     
     def CMD18_cert_verify(self, inbuf: bytes) -> int:
         if not self.is_initialized:
