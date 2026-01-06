@@ -53,7 +53,7 @@ def encrypt_document(gameid, pages):
     
     # Info Block
     # file data starts at 0x32b8 / 0x1f4b8
-    page_count = len(pages) if len(pages) < 1000 else 999
+    page_count = len(pages)
     
     info_block_size = 0x1f3e8 if page_count >= 100 else 0x31e8
     info_buffer = bytearray(info_block_size)
