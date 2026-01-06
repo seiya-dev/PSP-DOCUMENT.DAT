@@ -98,7 +98,7 @@ def encrypt_document(gameid, ins_id, pages):
     return pgd_buf
 
 if __name__ == "__main__":
-    print(':: PSP DOCUMENT.DAT Creator ::')
+    print(':: PS1 DOCUMENT.DAT Creator ::')
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--document',  help='Name of DOCUMENT.DAT')
