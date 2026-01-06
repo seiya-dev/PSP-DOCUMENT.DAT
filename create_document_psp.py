@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import argparse
-import hashlib
-import io
-import glob
 import os
 import struct
-import sys
-import zipfile
+import argparse
 
 import hmac
+import hashlib
 from pathlib import Path
 from Crypto.Cipher import DES
 
@@ -22,11 +18,6 @@ DES_KEY = bytes([0xDA, 0x39, 0x23, 0xEF, 0x9C, 0x61, 0xB9, 0x30])
 DES_IV  = bytes([0x2D, 0xEE, 0x89, 0x50, 0x96, 0x91, 0x12, 0xD9])
 
 ###################
-
-class attrdict(dict):
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        self.__dict__ = self
 
 def desEncrypt(data: bytes) -> bytes:
     cipher = DES.new(DES_KEY, DES.MODE_CBC, DES_IV)
