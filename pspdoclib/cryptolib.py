@@ -359,8 +359,8 @@ class CryptoEngine:
     
     # ---------- keyvault ----------
     def _keyvault_entry(self, idx: int) -> bytes:
-        if not (0 <= idx < len(self.keyvault)):
-            raise ValueError("idx out of range")
+        if not idx in self.keyvault:
+            raise ValueError(f'Unknown key #0x{idx:02x}')
         return bytes(self.keyvault[idx])
     
     # ---------- mesh / per-console key derivation ----------
