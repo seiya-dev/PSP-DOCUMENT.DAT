@@ -61,11 +61,9 @@ def _eng() -> CryptoEngine:
 PGD_MAGIC = 0x44475000
 _DNAS_KEY1 = bytes([0xED, 0xE2, 0x5D, 0x2D, 0xBB, 0xF8, 0x12, 0xE5, 0x3C, 0x5C, 0x59, 0x32, 0xFA, 0xE3, 0xE2, 0x43])
 _DNAS_KEY2 = bytes([0x27, 0x74, 0xFB, 0xEB, 0xA4, 0xA0, 0x01, 0xD7, 0x02, 0x56, 0x9E, 0x33, 0x8C, 0x19, 0x57, 0x83])
-_PSP_AM_HASH_KEY_1 = bytes([0x9C, 0x48, 0xB6, 0x28, 0x40, 0xE6, 0x53, 0x3F, 0x05, 0x11, 0x3A, 0x4E, 0x65, 0xE6, 0x3A, 0x64])
-_PSP_AM_HASH_KEY_2 = bytes([0x70, 0xB4, 0x7B, 0xC0, 0xA1, 0x4B, 0xDA, 0xD6, 0xE0, 0x10, 0x14, 0xED, 0x72, 0x7C, 0x53, 0x4C])
-_PSP_AM_HASH_KEY_3 = bytes([0xE3, 0x50, 0xED, 0x1D, 0x91, 0x0A, 0x1F, 0xD0, 0x29, 0xBB, 0x1C, 0x3E, 0xF3, 0x40, 0x77, 0xFB])
-_PSP_AM_HASH_KEY_4 = bytes([0x13, 0x5F, 0xA4, 0x7C, 0xAB, 0x39, 0x5B, 0xA4, 0x76, 0xB8, 0xCC, 0xA9, 0x8F, 0x3A, 0x04, 0x45])
-_PSP_AM_HASH_KEY_5 = bytes([0x67, 0x8D, 0x7F, 0xA3, 0x2A, 0x9C, 0xA0, 0xD1, 0x50, 0x8A, 0xD8, 0x38, 0x5E, 0x4B, 0x01, 0x7E])
+_AM_HASH_KEY_3 = bytes([0xE3, 0x50, 0xED, 0x1D, 0x91, 0x0A, 0x1F, 0xD0, 0x29, 0xBB, 0x1C, 0x3E, 0xF3, 0x40, 0x77, 0xFB])
+_AM_HASH_KEY_4 = bytes([0x13, 0x5F, 0xA4, 0x7C, 0xAB, 0x39, 0x5B, 0xA4, 0x76, 0xB8, 0xCC, 0xA9, 0x8F, 0x3A, 0x04, 0x45])
+_AM_HASH_KEY_5 = bytes([0x67, 0x8D, 0x7F, 0xA3, 0x2A, 0x9C, 0xA0, 0xD1, 0x50, 0x8A, 0xD8, 0x38, 0x5E, 0x4B, 0x01, 0x7E])
 
 # ============================================================
 # Helpers: cryptoengine wrappers matching the C header format
@@ -236,7 +234,7 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
 
     # tmp1 ^= loc_1CD4
     for i in range(16):
-        tmp1[i] ^= _PSP_AM_HASH_KEY_3[i]
+        tmp1[i] ^= _AM_HASH_KEY_3[i]
 
     # If type==2, do fuse encrypt then cmd4 again
     if mkey.type == 2:
@@ -352,16 +350,16 @@ def BBCipherInit(ckey: CipherKey, type_: int, mode: int, header_key: bytearray, 
         # type==2 uses fuse encrypt; else cmd4 with keyseed 0x39
         if ckey.type == 2:
             for i in range(16):
-                kbuf[i] ^= _PSP_AM_HASH_KEY_4[i]
+                kbuf[i] ^= _AM_HASH_KEY_4[i]
             kbuf = bytearray(_crypto_cmd_encrypt_fuse(bytes(kbuf)))
             for i in range(16):
-                kbuf[i] ^= _PSP_AM_HASH_KEY_5[i]
+                kbuf[i] ^= _AM_HASH_KEY_5[i]
         else:
             for i in range(16):
-                kbuf[i] ^= _PSP_AM_HASH_KEY_4[i]
+                kbuf[i] ^= _AM_HASH_KEY_4[i]
             kbuf = bytearray(_crypto_cmd_encrypt_iv0(bytes(kbuf), 0x39))
             for i in range(16):
-                kbuf[i] ^= _PSP_AM_HASH_KEY_5[i]
+                kbuf[i] ^= _AM_HASH_KEY_5[i]
 
         ckey.key[:] = kbuf[:16]
         header_key[:16] = kbuf[:16]
@@ -381,7 +379,7 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
     # Step A: derive tmp2 from ckey.key
     tmp = bytearray(ckey.key)
     for i in range(16):
-        tmp[i] ^= _PSP_AM_HASH_KEY_5[i]
+        tmp[i] ^= _AM_HASH_KEY_5[i]
 
     if ckey.type == 2:
         tmp = bytearray(_crypto_cmd_decrypt_fuse(bytes(tmp)))
@@ -389,7 +387,7 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
         tmp = bytearray(_crypto_cmd_decrypt_iv0(bytes(tmp), 0x39))
 
     for i in range(16):
-        tmp[i] ^= _PSP_AM_HASH_KEY_4[i]
+        tmp[i] ^= _AM_HASH_KEY_4[i]
 
     tmp2 = bytes(tmp)
 
