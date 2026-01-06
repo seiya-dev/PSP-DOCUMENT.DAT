@@ -138,12 +138,11 @@ class PSPDoc(object):
             data_buf += sha1hmac(HMAC_KEY_PS3, header_enc)
         
         self.data.header.code    = sliceBuf(header_out, 0x000c, 0x0010).decode('utf-8').rstrip('\0')
+        self.data.header.page_limit  = b2i(sliceBuf(header_out, 0x001c, 0x0004))
+        self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
         
         self.data.header.pages_total = 0
         self.data.header.pages_total_ps3 = 0
-        
-        self.data.header.page_limit  = b2i(sliceBuf(header_out, 0x001c, 0x0004))
-        self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
         
         metadata_size = 0x32b8 - 0x00a0 - 0x0030
         if self.data.header.page_limit > 99:

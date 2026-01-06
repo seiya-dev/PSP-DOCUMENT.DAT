@@ -120,11 +120,11 @@ class PS1Doc(object):
         data_buf += header_out
         
         self.data.header.code    = sliceBuf(data_buf, 0x000c, 0x0010).decode('utf-8').rstrip('\0')
+        self.data.header.page_limit  = b2i(sliceBuf(data_buf, 0x001c, 0x0004))
+        self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
         
         self.data.header.pages_total = 0
         self.data.header.pages_total_ps3 = 0
-        self.data.header.page_limit  = b2i(sliceBuf(data_buf, 0x001c, 0x0004))
-        self.data.header.page_limit  = (10 ** (2 + self.data.header.page_limit)) - 1
         
         if self.data.header.page_limit not in (99, 999):
             print(f'  > BAD DOC PAGE LIMIT')
