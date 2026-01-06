@@ -19,6 +19,12 @@ DES_KEY = bytes.fromhex('39F7EFA16CCE5F4C')
 DES_IV  = bytes.fromhex('A819C4F5E154E30B')
 INS_ID  = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 
+# NOTE 1: INS_ID (Secure Install ID) can be any for custom PS1 PBP.
+# For official PS1 PBPs Secure Install ID should match between official PS1 PBP and DOC file
+# (if not - you will get message about broken data)
+
+# NOTE 2: PSP with CFW will "crash" if Secure Install ID match between official PS1 PBP and DOC file
+
 ###################
 
 def desEncrypt(data: bytes) -> bytes:
