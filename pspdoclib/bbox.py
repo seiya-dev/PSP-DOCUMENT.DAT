@@ -16,7 +16,7 @@ from .cryptolib import (
 )
 
 # ============================================================
-# Error codes (match iofilemgr_bbox.h)
+# Error codes
 # ============================================================
 
 ERROR_INVALID_ARG       = 0x80510201
@@ -26,6 +26,7 @@ ERROR_INVALID_FORMAT    = 0x80510204
 ERROR_UNKNOWN_VERSION   = 0x80510205
 ERROR_SECURE_INSTALL_ID = 0x80510206
 ERROR_BROKEN_DATA       = 0x80510207
+ERROR_BAD_MAC_KEY_PAD   = 0x80510302
 
 class BBoxException(Exception):
     def __init__(self, code: int, message: str = ""):
@@ -137,6 +138,7 @@ def BBMacInit(mkey: MACKey, type_: int) -> int:
     mkey.pad[:] = b"\x00" * 16
     return 0
 
+# Helper function for BBMacUpdate and BBMacFinal
 def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple[bytes, bytes]:
     if len(block) % 16 != 0:
         _raise(ERROR_INVALID_ARG, "encrypt block size must be multiple of 16")
@@ -145,7 +147,7 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
     for i in range(16):
         b[i] ^= key[i]
 
-    # C uses cryptoengine4 with key_type; cryptolib uses keyvault entry key_type+4
+    # cryptolib uses keyvault entry key_type
     ct = _crypto_cmd_encrypt_iv0(bytes(b), key_type)
 
     # update chaining key with last 16 bytes of ciphertext
@@ -154,7 +156,7 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
 
 def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
     if mkey.pad_size > 16:
-        return 0x80510302
+        _raise(ERROR_BAD_MAC_KEY_PAD, "MAC Key padding size must be multiple of 16")
 
     data = memoryview(buf)[:size]
 
@@ -192,7 +194,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
 
 def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
     if mkey.pad_size > 16:
-        return 0x80510302
+        _raise(ERROR_BAD_MAC_KEY_PAD, "MAC Key padding size must be multiple of 16")
 
     code = 0x3A if mkey.type == 2 else 0x38
 
@@ -261,32 +263,34 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
 def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
     if len(bbmac) != 16:
         return ERROR_INVALID_ARG
-
+    
     tmp = bytearray(16)
     type_ = mkey.type
+    
     ret = BBMacFinal(mkey, tmp, vkey)
+    
     if ret != 0:
-        return ret, -1
-
+        return ret
+    
     kbuf = bytearray(16)
-
+    
     if type_ == 3:
         dec = _crypto_cmd_decrypt_iv0(bbmac, 0x63)
         kbuf[:] = dec
     else:
         # For other types (mostly 1 and 2) → use bbmac as-is
         kbuf[:] = bbmac
-
+    
     # Now compare the decrypted/processed MAC with the freshly computed one    
     match = True
     for i in range(16):
         if kbuf[i] != tmp[i]:
             match = False
             break
-
+    
     if not match:
-        return ERROR_BROKEN_DATA  # 0x80510207 in your error list, but original often uses 0x80510300
-
+        return ERROR_BROKEN_DATA
+    
     return 0
 
 def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
@@ -295,29 +299,29 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
     
     if len(vkey_out) < 16:
         _raise(ERROR_INVALID_ARG, "vkey_out buffer must be at least 16 bytes")
-
+    
     # Step 1: Compute the expected MAC value (without version key)
     tmp = bytearray(16)
     type_ = mkey.type
     ret = BBMacFinal(mkey, tmp, None)
     if ret != 0:
         return ret
-
+    
     # Working buffer for the provided MAC transformations
     mac_working = bytearray(bbmac)
 
     # Special handling for type 3: MAC is pre-encrypted with keyseed 0x63
     if type_ == 3:
         mac_working[:] = _crypto_cmd_decrypt_iv0(bytes(mac_working), 0x63)
-
+    
     # Step 2: Decrypt with the type-specific code (0x38 or 0x3A)
     code = 0x3A if type_ == 2 else 0x38
     decrypted = _crypto_cmd_decrypt_iv0(bytes(mac_working), code)
-
+    
     # Step 3: Recover vkey = expected_MAC XOR decrypted_MAC
     for i in range(16):
         vkey_out[i] = tmp[i] ^ decrypted[i]
-
+    
     return 0
 
 # ============================================================
@@ -473,7 +477,7 @@ def pops_get_secure_install_id(buf: bytes) -> bytes:
 
 def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     if len(vkey) != 16:
-        return bytes(0x10)
+        _raise(ERROR_INVALID_ARG, "version_key must be 16 bytes")
     
     size = len(buf)
     buf = bytes(buf)
@@ -483,15 +487,15 @@ def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     
     retv = BBMacInit(mkey, type_)
     if retv < 0:
-        return bytes(0x10)
+        _raise(ERROR_BROKEN_DATA, "BBMacInit failed")
     
     retv = BBMacUpdate(mkey, buf, size)
     if retv < 0:
-        return bytes(0x10)
+        _raise(ERROR_BROKEN_DATA, "BBMacUpdate failed")
     
     retv = BBMacFinal(mkey, tmp, vkey)
     if retv < 0:
-        return bytes(0x10)
+        _raise(ERROR_BROKEN_DATA, "BBMacFinal failed")
     
     return bytes(tmp)
 
