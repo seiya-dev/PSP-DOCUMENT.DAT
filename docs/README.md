@@ -9,7 +9,7 @@ To use the scripts, `Python 3.12+` is required, and the `pycryptodome` package m
 ## decrypt_document_ps1.py
 * For `PS1 on PSP/ePSP/PS3`manuals.
 
-Copy DOCUMENT.DAT files into the `dat_ps1docs` folder using any filename with the `.DAT` extension.
+Copy DOCUMENT.DAT files into the `in_ps1docs` folder using any filename with the `.DAT` extension.
 
 The script will create an `out_png_ps1` folder containing all pages.
 
@@ -18,7 +18,7 @@ Additionally, the decrypted `DOCUMENT_DEC.DAT` (only for PSP CFW) file will be s
 ## decrypt_document_psp.py
 * For `PSP Game` and `Minis` manuals.
 
-Copy `DOCUMENT.DAT` and `DOCINFO.EDAT` (if present) into the `dat_pspdocs` folder, adding a prefix to the filenames
+Copy `DOCUMENT.DAT` and `DOCINFO.EDAT` (if present) into the `in_pspdocs` folder, adding a prefix to the filenames
 (for example: `GAME_ULUS12345_DOCUMENT.DAT` and `GAME_ULUS12345_DOCINFO.EDAT`, respectively).
 
 The script will create an `out_png_psp` folder containing all pages.

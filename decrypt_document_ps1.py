@@ -274,7 +274,7 @@ class PS1Doc(object):
 ###################
 
 def readDocs():
-    docs = [p.as_posix() for p in Path('./dat_ps1docs').glob('*.dat')]
+    docs = [p.as_posix() for p in Path('./in_ps1docs').glob('*.dat')]
     
     for di in range(len(docs)):
         PS1Doc(f'{docs[di]}').readDocData()

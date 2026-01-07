@@ -290,7 +290,7 @@ class PSPDoc(object):
 ###################
 
 def readDocs():
-    docs = [p.as_posix() for p in Path('./dat_pspdocs').glob('*.dat')]
+    docs = [p.as_posix() for p in Path('./in_pspdocs').glob('*.dat')]
     
     for di in range(len(docs)):
         PSPDoc(f'{docs[di]}').readDocData()
