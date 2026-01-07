@@ -55,7 +55,7 @@ def encrypt_document(gameid, pages):
     # file data starts at 0x32b8 / 0x1f4b8
     page_count = len(pages)
     
-    info_block_size = 0x1f3e8 if page_count >= 100 else 0x31e8
+    info_block_size = 0x31e8 if page_count < 100 else 0x1f3e8
     info_buffer = bytearray(info_block_size)
     
     ps3_page_count_offset = 0x3188 if page_count < 100 else 0x1f388
