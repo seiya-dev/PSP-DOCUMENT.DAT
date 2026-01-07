@@ -542,38 +542,38 @@ def pops_man_doc_check_data(buf: bytes, digest: bytes, secure_install_id: bytes)
 def boxbb_decrypt(buf: bytearray, size: int, seed: int, vkey: bytes, hdr_key: bytes, type_: int) -> int:
     if len(vkey) != 16 or len(hdr_key) != 16:
         return ERROR_INVALID_ARG
-
+    
     ckey = CipherKey(type=0, seed=0, key=bytearray(16))
     header_key_ba = bytearray(hdr_key)
-
+    
     retv = BBCipherInit(ckey, type_, BB_CIPHER_DECRYPT, header_key_ba, vkey, seed)
     if retv < 0:
         return retv
-
+    
     retv = BBCipherUpdate(ckey, buf, size)
     if retv < 0:
         return retv
-
+    
     retv = BBCipherFinal(ckey)
     if retv < 0:
         return retv
-
+    
     return 0
 
 def boxbb_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag: int) -> int:
     if len(buf) < 0x90:
         return ERROR_INVALID_FORMAT
-
+    
     if buf[0:4] != struct.pack("<I", PGD_MAGIC):
         return ERROR_INVALID_FORMAT
-
+    
     version = struct.unpack_from("<I", buf, 4)[0]
     if version != 1:
         return ERROR_UNKNOWN_VERSION
-
+    
     box_type = struct.unpack_from("<I", buf, 8)[0]
     type_ = 2
-
+    
     if box_type == 1:
         flag |= 4
         type_ = 1
@@ -582,7 +582,7 @@ def boxbb_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag
             return ERROR_INVALID_FORMAT
         if (flag & 4) != 0:
             return ERROR_INVALID_FORMAT
-
+    
     dnas_key: Optional[bytes] = None
     if (flag & 2) != 0:
         dnas_key = _DNAS_KEY1
@@ -590,34 +590,34 @@ def boxbb_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag
         dnas_key = _DNAS_KEY2
     if dnas_key is None:
         return ERROR_INVALID_ARG
-
+    
     retv = boxbb_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
     if retv < 0:
         return ERROR_INVALID_FORMAT
-
+    
     if secure_install_id is not None:
         if len(secure_install_id) != 16:
             return ERROR_INVALID_ARG
-
+        
         retv = boxbb_mac_check(bytes(buf[:0x70]), 0x70, secure_install_id, bytes(buf[0x70:0x80]), type_)
         if retv < 0:
             return ERROR_SECURE_INSTALL_ID
-
+        
         # decrypt header segment: buf+0x30 size 0x30, hdr_key=buf+0x10
         segment = bytearray(buf[0x30:0x30 + 0x30])
         retv = boxbb_decrypt(segment, 0x30, 0, secure_install_id, bytes(buf[0x10:0x20]), type_)
         if retv < 0:
             return retv
         buf[0x30:0x30 + 0x30] = segment
-
+        
         if struct.unpack_from("<I", buf, 0x40)[0] != 0:
             return ERROR_UNKNOWN_VERSION
-
+        
         if struct.unpack_from("<I", buf, 0x48)[0] != 0x400:
             return ERROR_INVALID_FORMAT
-
+        
         flag |= 8
-
+    
     return flag
 
 # ============================================================
@@ -633,7 +633,7 @@ def iofilemgrBBoxDecrypt(
 ) -> int:
     if len(inbuf) < size:
         return ERROR_INVALID_ARG
-
+    
     box_type = struct.unpack_from("<I", inbuf, 8)[0]
     if box_type == 0:
         type_ = 2
@@ -641,39 +641,39 @@ def iofilemgrBBoxDecrypt(
         type_ = 1
     else:
         return -1
-
+    
     calc_id = bytearray(16)
     res = get_secure_install_id(bytes(inbuf), type_, calc_id)
     if res < 0:
         if verbose:
             print("sceIofilemgrDnasDecrypt() cannot get secure install id.")
         return res
-
+    
     secure_install_id_out[:16] = calc_id
-
+    
     flag = 2
     if type_ == 2:
         flag = 1
-
+    
     res = boxbb_verify_header(inbuf, bytes(calc_id), flag)
     if res < 0:
         if verbose:
             print("sceIofilemgrDnasDecrypt() header verification failed.")
         return res
-
+    
     data_size = struct.unpack_from("<I", inbuf, 0x44)[0]
     block_size = struct.unpack_from("<I", inbuf, 0x48)[0]
     data_offset = struct.unpack_from("<I", inbuf, 0x4C)[0]
-
+    
     align_size = (data_size + 15) & ~15
     table_offset = data_offset + align_size
     block_num = ((align_size + block_size - 1) & ~(block_size - 1)) // block_size
-
+    
     if (align_size + block_num * 16) > size:
         if verbose:
             print("sceIofilemgrDnasDecrypt() invalid size!")
         return -1
-
+    
     # check data table mac
     res = boxbb_mac_check(
         bytes(inbuf[table_offset:table_offset + block_num * 16]),
@@ -686,7 +686,7 @@ def iofilemgrBBoxDecrypt(
         if verbose:
             print("sceIofilemgrDnasDecrypt() data verification failed.")
         return res
-
+    
     # decrypt data
     data_region = bytearray(inbuf[0x90:0x90 + align_size])
     res = boxbb_decrypt(data_region, align_size, 0, bytes(calc_id), bytes(inbuf[0x30:0x40]), type_)
@@ -695,7 +695,7 @@ def iofilemgrBBoxDecrypt(
             print("sceIofilemgrDnasDecrypt() data decryption failed.")
         return res
     inbuf[0x90:0x90 + align_size] = data_region
-
+    
     # copy decrypted payload
     payload = bytes(inbuf[data_offset:data_offset + data_size])
     outbuf[:data_size] = payload
@@ -716,9 +716,9 @@ def decrypt_bbox_blob(blob: bytes, *, verbose: bool = False) -> Tuple[bytes, byt
     inbuf = bytearray(blob)
     outbuf = bytearray(len(blob))
     sid = bytearray(16)
-
+    
     res = iofilemgrBBoxDecrypt(inbuf, len(inbuf), outbuf, sid, verbose=verbose)
     if res < 0:
         _raise(res, "bbox decrypt failed")
-
+    
     return bytes(outbuf[:res]), bytes(sid)
