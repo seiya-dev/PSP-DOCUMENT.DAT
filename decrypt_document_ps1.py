@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import os
 
 import hashlib
@@ -45,7 +48,6 @@ def b2i(input_data: bytes) -> int:
 class PS1Doc(object):
     def __init__(self, file):
         self.data = attrdict()
-        self.udata = attrdict()
         
         self.data.header = attrdict()
         self.data.pages = attrdict()

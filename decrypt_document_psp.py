@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import os
 
 import hmac
@@ -53,7 +56,6 @@ def i2b(value: int, size: int = 4) -> bytes:
 class PSPDoc(object):
     def __init__(self, file):
         self.data = attrdict()
-        self.udata = attrdict()
         
         self.data.header = attrdict()
         self.data.pages = attrdict()
