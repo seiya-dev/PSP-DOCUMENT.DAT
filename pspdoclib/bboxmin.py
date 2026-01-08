@@ -1,3 +1,6 @@
+# coding: utf-8
+# BBOX minimal implementation for encrypted PS1 DOCUMENT.DAT
+
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple
 from Crypto.Cipher import AES
@@ -95,7 +98,6 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
     K1 = left_shift_1(L)
     K2 = left_shift_1(K1)
     
-    # padding
     pad = bytearray(mkey.pad)
     if mkey.pad_size < 16:
         pad[mkey.pad_size] = 0x80
