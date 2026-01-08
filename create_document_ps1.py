@@ -23,8 +23,10 @@ ID_PATTERN   = re.compile(r"^[A-Za-z]{4}\d{5}$")
 INS_ID_BYTES = re.compile(r"^\s*(?:[0-9A-Fa-f]{2}\s*)+$")
 
 # NOTE 1: INS_ID (Secure Install ID) can be any for custom PS1 PBP.
+# That Secure Install ID should be stored in KEYS.BIN
 # For official PS1 PBPs Secure Install ID should match between official PS1 PBP and DOC file
 # (if not - you will get message about broken data)
+# Secure Install ID stored in KEYS.BIN
 
 # NOTE 2: PSP with CFW may "crash" if Secure Install ID match between official PS1 PBP and DOC file
 
