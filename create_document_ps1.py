@@ -37,7 +37,7 @@ def desEncrypt(data: bytes) -> bytes:
 def sha1hash(data: bytes) -> bytes:
     return hashlib.sha1(data).digest()[:0x10]
 
-def gen_pad(buf: bytes, block_size: int = 8) -> bytes:
+def gen_pad(buf: bytes, block_size: int = 16) -> bytes:
     return buf + b'\x00' * (-len(buf) % block_size)
 
 ###################

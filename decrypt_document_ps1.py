@@ -89,7 +89,7 @@ class PS1Doc(object):
         header_out  = sliceBuf(in_buf, 0x00, 0x60)
         header_mac  = sliceBuf(in_buf, 0x60, 0x10)
         header_hash = sliceBuf(in_buf, 0x70, 0x10)
-        install_id  = pops_get_secure_install_id(in_buf)
+        install_id  = pops_get_secure_install_id(header_out + header_mac)
 
         if is_enc == 1:
             print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
