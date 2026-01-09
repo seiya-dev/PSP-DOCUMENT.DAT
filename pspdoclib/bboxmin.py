@@ -48,7 +48,7 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
     key_next = ct[-0x10:] if len(ct) >= 0x10 else (b'\x00' * 0x10)
     return ct, key_next
 
-def BBMacUpdate(mkey: MACKey, buf: bytes) -> int:
+def BBMacUpdate(mkey: MACKey, buf: bytes):
     if mkey.pad_size > 16:
         _raise('MAC Key padding size must be do not exceed 16 bytes')
     
@@ -58,7 +58,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes) -> int:
     if mkey.pad_size + size <= 16:
         mkey.pad[mkey.pad_size:mkey.pad_size + size] = data.tobytes()
         mkey.pad_size += size
-        return 0
+        return
     
     stream = bytes(mkey.pad[:mkey.pad_size]) + data.tobytes()
     
