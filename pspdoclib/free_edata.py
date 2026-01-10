@@ -58,11 +58,11 @@ def free_edata(name: str, buf: bytes):
     
     # ECDSA keys
     sha1_hash = hashlib.sha1(buf[:0x58]).digest()
-    signature = buf[0x58:0x6c]
-    pubkey    = buf[0x6c:0x80]
+    r_bytes   = buf[0x58:0x6c]
+    s_bytes   = buf[0x6c:0x80]
     
     # ECDSA hash
-    ecdsa_verify = ecdsa.verify(sha1_hash, signature, pubkey)
+    ecdsa_verify = ecdsa.verify(sha1_hash, r_bytes, s_bytes)
     
     # Check ECDSA verification
     if not ecdsa_verify:
