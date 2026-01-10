@@ -190,7 +190,19 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
 
     return 0
 
-def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
+# left shift L by 1 (GF(2^128) Rb=0x87)
+def left_shift_1(block16: bytes) -> bytes:
+    b = bytearray(16)
+    carry = 0
+    for i in reversed(range(16)):
+        v = block16[i]
+        b[i] = ((v << 1) & 0xFF) | carry
+        carry = 1 if (v & 0x80) else 0
+    if carry:
+        b[15] ^= 0x87
+    return bytes(b)
+
+def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]):
     if mkey.pad_size > 16:
         _raise(ERROR_BAD_MAC_KEY_PAD, 'MAC Key padding size must be do not exceed 16 bytes')
     
@@ -198,18 +210,6 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
     
     # Step 1: encrypt 16 bytes of zeros to get L
     L = _crypto_cmd_encrypt_iv0(b'\x00' * 16, code)
-    
-    # left shift L by 1 (GF(2^128) Rb=0x87)
-    def left_shift_1(block16: bytes) -> bytes:
-        b = bytearray(16)
-        carry = 0
-        for i in reversed(range(16)):
-            v = block16[i]
-            b[i] = ((v << 1) & 0xFF) | carry
-            carry = 1 if (v & 0x80) else 0
-        if carry:
-            b[15] ^= 0x87
-        return bytes(b)
     
     K1 = left_shift_1(L)
     K2 = left_shift_1(K1)
@@ -256,7 +256,6 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]) -> int:
     mkey.pad[:] = b'\x00' * 16
     mkey.pad_size = 0
     mkey.type = 0
-    return 0
 
 def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
     if len(bbmac) != 16:
@@ -265,10 +264,7 @@ def BBMacFinal2(mkey: MACKey, bbmac: bytes, vkey: Optional[bytes] = None):
     tmp = bytearray(16)
     type_ = mkey.type
     
-    ret = BBMacFinal(mkey, tmp, vkey)
-    
-    if ret != 0:
-        return ret
+    BBMacFinal(mkey, tmp, vkey)
     
     kbuf = bytearray(16)
     
@@ -301,9 +297,7 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes, vkey_out: bytearray) -> int:
     # Step 1: Compute the expected MAC value (without version key)
     tmp = bytearray(16)
     type_ = mkey.type
-    ret = BBMacFinal(mkey, tmp, None)
-    if ret != 0:
-        return ret
+    BBMacFinal(mkey, tmp, None)
     
     # Working buffer for the provided MAC transformations
     mac_working = bytearray(bbmac)
@@ -484,10 +478,7 @@ def boxbb_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, size)
-    
-    retv = BBMacFinal(mkey, tmp, vkey)
-    if retv < 0:
-        _raise(ERROR_BROKEN_DATA, 'BBMacFinal failed')
+    BBMacFinal(mkey, tmp, vkey)
     
     return bytes(tmp)
 
@@ -507,10 +498,7 @@ def boxbb_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: in
     mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, size)
-    
-    retv = BBMacFinal(mkey, tmp, vkey)
-    if retv < 0:
-        return retv
+    BBMacFinal(mkey, tmp, vkey)
     
     if bytes(tmp) != digest:
         return ERROR_BROKEN_DATA
