@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import struct
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple
@@ -19,14 +20,14 @@ from .cryptolib import (
 # Error codes
 # ============================================================
 
-ERROR_INVALID_ARG       = 0x80510201
-ERROR_MFILE             = 0x80510202
-ERROR_BADF              = 0x80510203
-ERROR_INVALID_FORMAT    = 0x80510204
-ERROR_UNKNOWN_VERSION   = 0x80510205
-ERROR_SECURE_INSTALL_ID = 0x80510206
-ERROR_BROKEN_DATA       = 0x80510207
-ERROR_BAD_MAC_KEY_PAD   = 0x80510302
+ERROR_INVALID_ARG       = ctypes.c_int32(0x80510201).value
+ERROR_MFILE             = ctypes.c_int32(0x80510202).value
+ERROR_BADF              = ctypes.c_int32(0x80510203).value
+ERROR_INVALID_FORMAT    = ctypes.c_int32(0x80510204).value
+ERROR_UNKNOWN_VERSION   = ctypes.c_int32(0x80510205).value
+ERROR_SECURE_INSTALL_ID = ctypes.c_int32(0x80510206).value
+ERROR_BROKEN_DATA       = ctypes.c_int32(0x80510207).value
+ERROR_BAD_MAC_KEY_PAD   = ctypes.c_int32(0x80510302).value
 
 class BBoxException(Exception):
     def __init__(self, code: int, message: str = ''):
