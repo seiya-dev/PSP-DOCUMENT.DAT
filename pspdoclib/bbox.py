@@ -153,7 +153,7 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
     key_next = ct[-16:] if len(ct) >= 16 else (b'\x00' * 16)
     return ct, key_next
 
-def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
+def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
     if mkey.pad_size > 16:
         _raise(ERROR_BAD_MAC_KEY_PAD, 'MAC Key padding size must be do not exceed 16 bytes')
     
@@ -162,7 +162,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
     if mkey.pad_size + size <= 16:
         mkey.pad[mkey.pad_size:mkey.pad_size + size] = data.tobytes()
         mkey.pad_size += size
-        return 0
+        return
     
     # Need to process full 16-byte blocks
     # Build a stream starting with existing pad then the new data
@@ -189,7 +189,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int) -> int:
         mkey.key[:] = key_next
         p += len(chunk)
 
-    return 0
+    return
 
 # left shift L by 1 (GF(2^128) Rb=0x87)
 def left_shift_1(block16: bytes) -> bytes:
