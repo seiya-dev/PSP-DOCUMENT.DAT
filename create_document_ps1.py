@@ -49,7 +49,7 @@ def create_header(gameid):
     struct.pack_into('<I', buf, 0x00, 0x20434F44)
     struct.pack_into('<I', buf, 0x04, 0x10000)
     struct.pack_into('<I', buf, 0x08, 0x10000)
-    buf[0x0C:0x1C] = gameid.encode('ascii')[:0x10].ljust(0x10, b'\x00')
+    buf[0x0C:0x1C] = gameid.encode('ascii')[:0x0F].ljust(0x10, b'\x00')
     struct.pack_into('<I', buf, 0x1c, 0)
     struct.pack_into('<I', buf, 0x1c, 0 if len(pages) < 100 else 1)
     return buf
