@@ -181,7 +181,7 @@ class PS1Doc(object):
         stuffing_len = self.data.pages.info[0].offset - len(data_buf)
         data_buf += bytes(stuffing_len)
         
-        if len(data_buf) == info_block_size + 0x88 + 0x28:
+        if len(data_buf) >= info_block_size + 0x88 + 0x28:
             offset_block_len = 0x80 * self.data.header.page_limit
             offset_block_end = 0x88 + offset_block_len
             data_buf[offset_block_end:offset_block_end + 0x04] = sliceBuf(info_block, offset_block_len, 0x0004)
