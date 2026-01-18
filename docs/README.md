@@ -31,6 +31,8 @@ For format summary of the PS1 / PSP DOCUMENT.DAT read [README_FORMAT.md](README_
 
 ## Creating DOCUMENT.DAT
 
+For creating PS1 & PSP DOCUMENT.DAT file you can use [PSP DocMaker NX GUI](https://github.com/seiya-dev/PSPDocMakerGUI) tool.
+
 For creating PS1 DOCUMENT.DAT file you can use [pop-fe](https://github.com/sahlberg/pop-fe) or `create_document_ps1.py` tool.
 
 For creating PSP DOCUMENT.DAT file you can use `create_document_psp.py` tool.
