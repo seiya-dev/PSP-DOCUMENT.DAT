@@ -110,7 +110,7 @@ class PSPDoc(object):
         header = self.f_dat[0x00:0x10]
         
         if header != b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
-            print(f'  > ONLY ENCRYPTED DOCUMENT.DAT SUPPORTED.')
+            print(f'  > BAD PGD HEADER!')
             return None
         
         header_padding = self.f_dat[0x70:0x80]
