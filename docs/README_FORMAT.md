@@ -35,7 +35,7 @@
 |--------|------|-----------|-------------------------------------------------------------------------------------------------------------------------------|
 | 0x0000 | 0x04 | magic     | Magic: 44 4F 43 20 ("DOC ")                                                                                                   |
 | 0x0004 | 0x08 | unknown   | Unknown value. Always 0x00000100 0x00000100 (Unused?)                                                                         |
-| 0x000C | 0x10 | title_id  | ASCII format XXXXYYYYY. 9 bytes followed by null-terminators (Unused?)                                                        |
+| 0x000C | 0x10 | title_id  | Format: XXXXYYYYY. ASCII string followed by null-terminator (Unused?)                                                         |
 | 0x001C | 0x04 | size_flag | 1 = greater size, 0 = smaller, else fail. The info block size switch determines the size of the info block: 0x31E8 or 0x1F3E8 |
 | 0x0020 | 0x40 | padding   | Zeroed                                                                                                                        |
 
