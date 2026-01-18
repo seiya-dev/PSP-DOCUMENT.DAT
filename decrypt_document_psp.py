@@ -86,6 +86,9 @@ class PSPDoc(object):
             self.f_dat = bytearray(self_b_dat)
     
     def readDocData(self):
+        if len(self.f_dat) == 0:
+            return
+        
         print(f'\n[:INFO:] Reading: {self.data.file_info.name}_DOCUMENT.DAT')
         is_default_key = 1
         is_proper_doc = 1
@@ -105,6 +108,7 @@ class PSPDoc(object):
                 dec_key = desChangeKey(doc_key)
         
         header = self.f_dat[0x00:0x10]
+        
         if header != b'\0PGD\1\0\0\0\1\0\0\0\0\0\0\0':
             print(f'  > ONLY ENCRYPTED DOCUMENT.DAT SUPPORTED.')
             return None
