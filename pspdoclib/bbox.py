@@ -492,7 +492,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
         type_ = 1
     else:
         if box_type != 0 or (flag & 4) != 0:
-            _raise(ERROR_INVALID_FORMAT, 'BBox: Verify header failed')
+            _raise(ERROR_INVALID_FORMAT, 'BBox: Verify header failed, bad box type')
     
     dnas_key = None
     if (flag & 2) != 0:
