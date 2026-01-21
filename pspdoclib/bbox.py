@@ -151,11 +151,12 @@ def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple
     key_next = ct[-0x10:] if len(ct) >= 0x10 else (b'\x00' * 0x10)
     return ct, key_next
 
-def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
+def BBMacUpdate(mkey: MACKey, buf: bytes):
     if mkey.pad_size > 0x10:
         _raise(ERROR_BAD_MAC_KEY_PAD, 'MAC Key padding size must be do not exceed 16 bytes')
     
-    data = memoryview(buf)[:size]
+    size = len(buf)
+    data = memoryview(buf)
     
     if mkey.pad_size + size <= 0x10:
         mkey.pad[mkey.pad_size:mkey.pad_size + size] = data.tobytes()
@@ -409,7 +410,7 @@ def get_secure_install_id(buf: bytes, type_: int) -> bytes:
     mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     
     BBMacInit(mkey, type_)
-    BBMacUpdate(mkey, buf, 0x70)
+    BBMacUpdate(mkey, buf[:0x70])
     id_out[:0x10] = bbmac_getkey(mkey, buf[0x70:0x80])
     
     return id_out
@@ -420,7 +421,7 @@ def pops_get_secure_install_id(buf: bytes) -> bytes:
     mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     
     BBMacInit(mkey, 3)
-    BBMacUpdate(mkey, buf, 0x60)
+    BBMacUpdate(mkey, buf[:0x60])
     id_out[:0x10] = bbmac_getkey(mkey, buf[0x60:0x70])
     
     return id_out
@@ -435,7 +436,7 @@ def bbox_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     
     mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     BBMacInit(mkey, type_)
-    BBMacUpdate(mkey, buf, size)
+    BBMacUpdate(mkey, buf)
     BBMacFinal(mkey, tmp, vkey)
     
     return bytes(tmp)
@@ -446,7 +447,7 @@ def bbox_mac_gen_enc(buf: bytes, vkey: bytes) -> bytes:
     get_bb_mac_enc = _crypto_cmd_encrypt_iv0(get_bb_mac, 0x63)
     return get_bb_mac_enc
 
-def bbox_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int) -> bool:
+def bbox_mac_check(buf: bytes, vkey: bytes, digest: bytes, type_: int) -> bool:
     if len(digest) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox (bbox_mac_check): Bad digest length')
     if len(vkey) != 0x10:
@@ -455,7 +456,7 @@ def bbox_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int
     tmp = bytearray(0x10)
     mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     BBMacInit(mkey, type_)
-    BBMacUpdate(mkey, buf, size)
+    BBMacUpdate(mkey, buf)
     BBMacFinal(mkey, tmp, vkey)
     
     return bytes(tmp) == digest
@@ -503,7 +504,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
     if dnas_key is None:
         _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed, bad DNAS flag')
     
-    mac_ok = bbox_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
+    mac_ok = bbox_mac_check(bytes(buf[:0x80]), dnas_key, bytes(buf[0x80:0x90]), type_)
     if not mac_ok:
         return False
     
@@ -511,7 +512,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
         if len(secure_install_id) != 16:
             _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed, bad secure_install_id length')
         
-        mac_ok = bbox_mac_check(bytes(buf[:0x70]), 0x70, secure_install_id, bytes(buf[0x70:0x80]), type_)
+        mac_ok = bbox_mac_check(bytes(buf[:0x70]), secure_install_id, bytes(buf[0x70:0x80]), type_)
         if not mac_ok:
             return False
         
@@ -547,7 +548,6 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray) -> Tuple[int, b
         print('io_filemgr_bbox_decrypt: Bad BBox type')
         return -1, calc_id
     
-    
     get_calc_id = get_secure_install_id(bytes(inbuf), type_)
     calc_id[:0x10] = get_calc_id
     
@@ -579,7 +579,6 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray) -> Tuple[int, b
     # check data table mac
     res = bbox_mac_check(
         bytes(inbuf[table_offset:table_offset + block_num * 0x10]),
-        block_num * 0x10,
         bytes(calc_id),
         bytes(inbuf[0x60:0x70]),
         type_,
