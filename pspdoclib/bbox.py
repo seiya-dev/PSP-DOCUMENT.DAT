@@ -187,7 +187,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
         ct, key_next = _sub_158_encrypt_block(chunk, mkey.key, code)
         mkey.key[:] = key_next
         p += len(chunk)
-
+    
     return
 
 # left shift L by 1 (GF(2^128) Rb=0x87)
