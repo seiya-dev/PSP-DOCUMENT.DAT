@@ -132,33 +132,33 @@ class CipherKey:
 def BBMacInit(mkey: MACKey, type_: int) -> int:
     mkey.type = int(type_)
     mkey.pad_size = 0
-    mkey.key[:] = b'\x00' * 16
-    mkey.pad[:] = b'\x00' * 16
+    mkey.key[:] = b'\x00' * 0x10
+    mkey.pad[:] = b'\x00' * 0x10
     return 0
 
 # Helper function for BBMacUpdate and BBMacFinal
 def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple[bytes, bytes]:
-    if len(block) % 16 != 0:
+    if len(block) % 0x10 != 0:
         _raise(ERROR_INVALID_ARG, 'encrypt block size must be multiple of 16')
     
     b = bytearray(block)
-    for i in range(16):
+    for i in range(0x10):
         b[i] ^= key[i]
     
     # cryptolib uses keyvault entry key_type
     ct = _crypto_cmd_encrypt_iv0(bytes(b), key_type)
     
     # update chaining key with last 16 bytes of ciphertext
-    key_next = ct[-16:] if len(ct) >= 16 else (b'\x00' * 16)
+    key_next = ct[-0x10:] if len(ct) >= 0x10 else (b'\x00' * 0x10)
     return ct, key_next
 
 def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
-    if mkey.pad_size > 16:
+    if mkey.pad_size > 0x10:
         _raise(ERROR_BAD_MAC_KEY_PAD, 'MAC Key padding size must be do not exceed 16 bytes')
     
     data = memoryview(buf)[:size]
     
-    if mkey.pad_size + size <= 16:
+    if mkey.pad_size + size <= 0x10:
         mkey.pad[mkey.pad_size:mkey.pad_size + size] = data.tobytes()
         mkey.pad_size += size
         return
@@ -170,7 +170,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
     # Determine how many bytes remain in pad at end (C keeps last partial chunk)
     rem = (mkey.pad_size + size) & 0x0F
     if rem == 0:
-        rem = 16
+        rem = 0x10
     
     full_len = len(stream) - rem
     tail = stream[full_len:]
@@ -203,37 +203,37 @@ def _left_shift_1(block16: bytes) -> bytes:
     return bytes(b)
 
 def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]):
-    if mkey.pad_size > 16:
+    if mkey.pad_size > 0x10:
         _raise(ERROR_BAD_MAC_KEY_PAD, 'MAC Key padding size must be do not exceed 16 bytes')
     
     code = 0x3A if mkey.type == 2 else 0x38
     
     # Step 1: encrypt 16 bytes of zeros to get L
-    L = _crypto_cmd_encrypt_iv0(b'\x00' * 16, code)
+    L = _crypto_cmd_encrypt_iv0(b'\x00' * 0x10, code)
     
     K1 = _left_shift_1(L)
     K2 = _left_shift_1(K1)
     
     # padding
     pad = bytearray(mkey.pad)
-    if mkey.pad_size < 16:
+    if mkey.pad_size < 0x10:
         pad[mkey.pad_size] = 0x80
-        for j in range(mkey.pad_size + 1, 16):
+        for j in range(mkey.pad_size + 1, 0x10):
             pad[j] = 0x00
         subkey = K2
     else:
         subkey = K1
     
-    for i in range(16):
+    for i in range(0x10):
         pad[i] ^= subkey[i]
     
     # Encrypt final block with chaining key mkey.key
     final_block = bytes(pad)
     ct, key_next = _sub_158_encrypt_block(final_block, mkey.key, code)
-    tmp1 = bytearray(ct[-16:])
+    tmp1 = bytearray(ct[-0x10:])
     
     # tmp1 ^= loc_1CD4
-    for i in range(16):
+    for i in range(0x10):
         tmp1[i] ^= _AM_HASH_KEY_3[i]
     
     # If type==2, do fuse encrypt then cmd4 again
@@ -243,27 +243,27 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]):
     
     # If vkey provided, XOR and encrypt
     if vkey is not None:
-        if len(vkey) != 16:
+        if len(vkey) != 0x10:
             _raise(ERROR_INVALID_ARG, 'BBox MacFinal: version key must be 16 bytes')
-        for i in range(16):
+        for i in range(0x10):
             tmp1[i] ^= vkey[i]
         tmp1 = bytearray(_crypto_cmd_encrypt_iv0(bytes(tmp1), code))
     
-    out16[:16] = tmp1[:16]
+    out16[:0x10] = tmp1[:0x10]
     
     # clear
-    mkey.key[:] = b'\x00' * 16
-    mkey.pad[:] = b'\x00' * 16
+    mkey.key[:] = b'\x00' * 0x10
+    mkey.pad[:] = b'\x00' * 0x10
     mkey.pad_size = 0
     mkey.type = 0
 
 def bbmac_getkey(mkey: MACKey, bbmac: bytes) -> bytearray:
-    if len(bbmac) != 16:
+    if len(bbmac) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox bbmac_getkey: bbmac must be exactly 16 bytes')
     
     # Step 1: Compute the expected MAC value (without version key)
-    vkey = bytearray(16)
-    tmp = bytearray(16)
+    vkey = bytearray(0x10)
+    tmp = bytearray(0x10)
     type_ = mkey.type
     BBMacFinal(mkey, tmp, None)
     
@@ -279,7 +279,7 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes) -> bytearray:
     decrypted = _crypto_cmd_decrypt_iv0(bytes(mac_working), code)
     
     # Step 3: Recover vkey = expected_MAC XOR decrypted_MAC
-    for i in range(16):
+    for i in range(0x10):
         vkey[i] = tmp[i] ^ decrypted[i]
     
     return vkey
@@ -296,50 +296,50 @@ def BBCipherInit(ckey: CipherKey, type_: int, mode: int, header_key: bytearray, 
     
     if mode == BB_CIPHER_DECRYPT:
         ckey.seed = int(seed) + 1
-        ckey.key[:] = header_key[:16]
+        ckey.key[:] = header_key[:0x10]
         if version_key is not None:
-            if len(version_key) != 16:
+            if len(version_key) != 0x10:
                 _raise(ERROR_INVALID_ARG, 'version_key must be 16 bytes')
-            for i in range(16):
+            for i in range(0x10):
                 ckey.key[i] ^= version_key[i]
     
     if mode == BB_CIPHER_ENCRYPT:
         ckey.seed = 1
         rnd = _crypto_cmd_prng()  # 20 bytes
-        kbuf = bytearray(rnd[:16])
+        kbuf = bytearray(rnd[:0x10])
         # clear last u32
-        kbuf[12:16] = b'\x00\x00\x00\x00'
+        kbuf[0x0C:0x10] = b'\x00\x00\x00\x00'
 
         # type==2 uses fuse encrypt; else cmd4 with keyseed 0x39
         if ckey.type == 2:
-            for i in range(16):
+            for i in range(0x10):
                 kbuf[i] ^= _AM_HASH_KEY_4[i]
             kbuf = bytearray(_crypto_cmd_encrypt_fuse(bytes(kbuf)))
-            for i in range(16):
+            for i in range(0x10):
                 kbuf[i] ^= _AM_HASH_KEY_5[i]
         else:
-            for i in range(16):
+            for i in range(0x10):
                 kbuf[i] ^= _AM_HASH_KEY_4[i]
             kbuf = bytearray(_crypto_cmd_encrypt_iv0(bytes(kbuf), 0x39))
-            for i in range(16):
+            for i in range(0x10):
                 kbuf[i] ^= _AM_HASH_KEY_5[i]
         
-        ckey.key[:] = kbuf[:16]
-        header_key[:16] = kbuf[:16]
+        ckey.key[:] = kbuf[:0x10]
+        header_key[:0x10] = kbuf[:0x10]
         
         if version_key is not None:
-            for i in range(16):
+            for i in range(0x10):
                 ckey.key[i] ^= version_key[i]
 
 def _sub_428_xor_stream(data: bytearray, ckey: CipherKey):
     size = len(data)
     
-    if size % 16 != 0:
+    if size % 0x10 != 0:
         _raise(ERROR_INVALID_ARG, 'cipher update size must be multiple of 16')
     
     # Step A: derive tmp2 from ckey.key
     tmp = bytearray(ckey.key)
-    for i in range(16):
+    for i in range(0x10):
         tmp[i] ^= _AM_HASH_KEY_5[i]
     
     if ckey.type == 2:
@@ -347,14 +347,14 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey):
     else:
         tmp = bytearray(_crypto_cmd_decrypt_iv0(bytes(tmp), 0x39))
     
-    for i in range(16):
+    for i in range(0x10):
         tmp[i] ^= _AM_HASH_KEY_4[i]
     
     tmp2 = bytes(tmp)
     
     # tmp1 is either zeros (seed==1) or tmp2 with (seed-1) in last u32
     if ckey.seed == 1:
-        tmp1 = b'\x00' * 16
+        tmp1 = b'\x00' * 0x10
     else:
         tmp1_ba = bytearray(tmp2)
         struct.pack_into('<I', tmp1_ba, 12, (ckey.seed - 1) & 0xFFFFFFFF)
@@ -362,7 +362,7 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey):
     
     # Build counter blocks: first 12 bytes from tmp2, last u32 = seed, increment per block
     blocks = bytearray(size)
-    for off in range(0, size, 16):
+    for off in range(0, size, 0x10):
         blocks[off:off + 12] = tmp2[0:12]
         struct.pack_into('<I', blocks, off + 12, ckey.seed & 0xFFFFFFFF)
         ckey.seed = (ckey.seed + 1) & 0xFFFFFFFF
@@ -374,7 +374,7 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey):
     # Here we implement a stable, testable transformation.
     
     # XOR first block with tmp1:
-    for i in range(16):
+    for i in range(0x10):
         blocks[i] ^= tmp1[i]
     
     # 'decrypt' with keyseed 0x63 (CBC zero IV in engine)
@@ -397,7 +397,7 @@ def BBCipherUpdate(ckey: CipherKey, data: bytearray):
         p += dsize
 
 def BBCipherFinal(ckey: CipherKey):
-    ckey.key[:] = b'\x00' * 16
+    ckey.key[:] = b'\x00' * 0x10
     ckey.type = 0
     ckey.seed = 0
 
@@ -406,36 +406,36 @@ def BBCipherFinal(ckey: CipherKey):
 # ============================================================
 
 def get_secure_install_id(buf: bytes, type_: int) -> bytes:
-    id_out = bytearray(16)
+    id_out = bytearray(0x10)
     
-    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, 0x70)
-    id_out[:16] = bbmac_getkey(mkey, buf[0x70:0x70 + 16])
+    id_out[:0x10] = bbmac_getkey(mkey, buf[0x70:0x80])
     
     return id_out
 
 def pops_get_secure_install_id(buf: bytes) -> bytes:
-    id_out = bytearray(16)
+    id_out = bytearray(0x10)
     
-    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     
     BBMacInit(mkey, 3)
     BBMacUpdate(mkey, buf, 0x60)
-    id_out[:16] = bbmac_getkey(mkey, buf[0x60:0x70])
+    id_out[:0x10] = bbmac_getkey(mkey, buf[0x60:0x70])
     
     return id_out
 
 def bbox_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
-    if len(vkey) != 16:
+    if len(vkey) != 0x10:
         _raise(ERROR_INVALID_ARG, 'version_key must be 16 bytes')
     
     size = len(buf)
     buf = bytes(buf)
-    tmp = bytearray(16)
+    tmp = bytearray(0x10)
     
-    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, size)
     BBMacFinal(mkey, tmp, vkey)
@@ -447,13 +447,13 @@ def bbox_mac_gen_enc(buf: bytes, vkey: bytes) -> bytes:
     return _crypto_cmd_encrypt_iv0(get_bb_mac, 0x63)
 
 def bbox_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int) -> bool:
-    if len(digest) != 16:
+    if len(digest) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox (bbox_mac_check): Bad digest length')
-    if len(vkey) != 16:
+    if len(vkey) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox (bbox_mac_check): Bad version key length')
     
-    tmp = bytearray(16)
-    mkey = MACKey(type=0, key=bytearray(16), pad=bytearray(16), pad_size=0)
+    tmp = bytearray(0x10)
+    mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
     BBMacInit(mkey, type_)
     BBMacUpdate(mkey, buf, size)
     BBMacFinal(mkey, tmp, vkey)
@@ -461,12 +461,12 @@ def bbox_mac_check(buf: bytes, size: int, vkey: bytes, digest: bytes, type_: int
     return bytes(tmp) == digest
 
 def bbox_decrypt(buf: bytearray, seed: int, vkey: bytes, hdr_key: bytes, type_: int):
-    if len(vkey) != 16 or len(hdr_key) != 16:
+    if len(vkey) != 0x10 or len(hdr_key) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox: Decryption failed, bad keys size')
     
     # print(f'  > HEADER KEY: {" ".join(f"{h:02X}" for h in hdr_key)}')
     
-    ckey = CipherKey(type=0, seed=0, key=bytearray(16))
+    ckey = CipherKey(type=0, seed=0, key=bytearray(0x10))
     header_key_ba = bytearray(hdr_key)
     
     BBCipherInit(ckey, type_, BB_CIPHER_DECRYPT, header_key_ba, vkey, seed)
@@ -516,9 +516,9 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
             return False
         
         # decrypt header segment: buf+0x30 size 0x30, hdr_key=buf+0x10
-        segment = bytearray(buf[0x30:0x30 + 0x30])
+        segment = bytearray(buf[0x30:0x60])
         bbox_decrypt(segment, 0, secure_install_id, bytes(buf[0x10:0x20]), type_)
-        buf[0x30:0x30 + 0x30] = segment
+        buf[0x30:0x60] = segment
         
         # version check
         if struct.unpack_from('<I', buf, 0x40)[0] != 0:
@@ -545,7 +545,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
         return -1
     
     calc_id = get_secure_install_id(bytes(inbuf), type_)
-    secure_install_id_out[:16] = calc_id
+    secure_install_id_out[:0x10] = calc_id
     
     flag = 2
     if type_ == 2:
@@ -568,14 +568,14 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     table_offset = data_offset + align_size
     block_num = ((align_size + block_size - 1) & ~(block_size - 1)) // block_size
     
-    if (align_size + block_num * 16) > len(inbuf):
+    if (align_size + block_num * 0x10) > len(inbuf):
         print('io_filemgr_bbox_decrypt: Invalid data size')
         return -1
     
     # check data table mac
     res = bbox_mac_check(
-        bytes(inbuf[table_offset:table_offset + block_num * 16]),
-        block_num * 16,
+        bytes(inbuf[table_offset:table_offset + block_num * 0x10]),
+        block_num * 0x10,
         bytes(calc_id),
         bytes(inbuf[0x60:0x70]),
         type_,
@@ -596,7 +596,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
 def bbox_decrypt_blob(blob: bytes) -> Tuple[bytes, bytes]:
     inbuf = bytearray(blob)
     outbuf = bytearray(len(blob))
-    sid = bytearray(16)
+    sid = bytearray(0x10)
     
     outbuf_len = io_filemgr_bbox_decrypt(inbuf, outbuf, sid)
     if outbuf_len < 0:
