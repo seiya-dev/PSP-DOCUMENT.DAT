@@ -134,7 +134,6 @@ def BBMacInit(mkey: MACKey, type_: int) -> int:
     mkey.pad_size = 0
     mkey.key[:] = b'\x00' * 0x10
     mkey.pad[:] = b'\x00' * 0x10
-    return 0
 
 # Helper function for BBMacUpdate and BBMacFinal
 def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple[bytes, bytes]:
@@ -187,8 +186,6 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
         ct, key_next = _sub_158_encrypt_block(chunk, mkey.key, code)
         mkey.key[:] = key_next
         p += len(chunk)
-    
-    return
 
 # left shift L by 1 (GF(2^128) Rb=0x87)
 def _left_shift_1(block16: bytes) -> bytes:
