@@ -1,6 +1,7 @@
-pspdecrypt_main
 __pycache__
-ref
+Lib
+Scripts
+pyvenv.cfg
 *.png
 *.dec
 *.dat
