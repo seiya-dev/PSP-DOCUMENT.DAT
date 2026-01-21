@@ -139,7 +139,7 @@ def BBMacInit(mkey: MACKey, type_: int) -> int:
 # Helper function for BBMacUpdate and BBMacFinal
 def _sub_158_encrypt_block(block: bytes, key: bytearray, key_type: int) -> Tuple[bytes, bytes]:
     if len(block) % 0x10 != 0:
-        _raise(ERROR_INVALID_ARG, 'encrypt block size must be multiple of 16')
+        _raise(ERROR_INVALID_ARG, 'BBox MacUpdate/MacFinal: Encrypt block size must be multiple of 16')
     
     b = bytearray(block)
     for i in range(0x10):
@@ -261,10 +261,11 @@ def bbmac_getkey(mkey: MACKey, bbmac: bytes) -> bytearray:
     if len(bbmac) != 0x10:
         _raise(ERROR_INVALID_ARG, 'BBox bbmac_getkey: bbmac must be exactly 16 bytes')
     
-    # Step 1: Compute the expected MAC value (without version key)
     vkey = bytearray(0x10)
     tmp = bytearray(0x10)
     type_ = mkey.type
+    
+    # Step 1: Compute the expected MAC value (without version key)
     BBMacFinal(mkey, tmp, None)
     
     # Working buffer for the provided MAC transformations
@@ -503,16 +504,16 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
     if dnas_key is None:
         _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed, bad DNAS flag')
     
-    retv = bbox_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
-    if not retv:
+    mac_ok = bbox_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
+    if not mac_ok:
         return False
     
     if secure_install_id is not None:
         if len(secure_install_id) != 16:
             _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed, bad secure_install_id length')
         
-        retv = bbox_mac_check(bytes(buf[:0x70]), 0x70, secure_install_id, bytes(buf[0x70:0x80]), type_)
-        if not retv:
+        mac_ok = bbox_mac_check(bytes(buf[:0x70]), 0x70, secure_install_id, bytes(buf[0x70:0x80]), type_)
+        if not mac_ok:
             return False
         
         # decrypt header segment: buf+0x30 size 0x30, hdr_key=buf+0x10
@@ -534,7 +535,10 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
 # API
 # ============================================================
 
-def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_out: bytearray) -> int:
+def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray) -> Tuple[int, bytes]:
+    # calculated secure_install_id
+    calc_id = bytearray(0x10)
+    
     box_type = struct.unpack_from('<I', inbuf, 8)[0]
     if box_type == 0:
         type_ = 2
@@ -542,10 +546,11 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
         type_ = 1
     if type_ is None:
         print('io_filemgr_bbox_decrypt: Bad BBox type')
-        return -1
+        return -1, calc_id
     
-    calc_id = get_secure_install_id(bytes(inbuf), type_)
-    secure_install_id_out[:0x10] = calc_id
+    
+    get_calc_id = get_secure_install_id(bytes(inbuf), type_)
+    calc_id[:0x10] = get_calc_id
     
     flag = 2
     if type_ == 2:
@@ -554,7 +559,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     res = bbox_verify_header(inbuf, bytes(calc_id), flag)
     if not res:
         print('io_filemgr_bbox_decrypt: Header verification failed')
-        return -1
+        return -1, calc_id
     
     # Note:
     # bbox_verify_header decrypted buffer: inbuf[0x30:0x60]
@@ -570,7 +575,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     
     if (align_size + block_num * 0x10) > len(inbuf):
         print('io_filemgr_bbox_decrypt: Invalid data size')
-        return -1
+        return -1, calc_id
     
     # check data table mac
     res = bbox_mac_check(
@@ -583,7 +588,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     
     if not res:
         print('io_filemgr_bbox_decrypt: Data verification failed')
-        return -1
+        return -1, calc_id
     
     data_region = bytearray(inbuf[0x90:0x90 + align_size])
     bbox_decrypt(data_region, 0, bytes(calc_id), bytes(inbuf[0x30:0x40]), type_)
@@ -591,15 +596,14 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     
     payload = bytes(inbuf[data_offset:data_offset + data_size])
     outbuf[:data_size] = payload
-    return data_size
+    return data_size, calc_id
 
 def bbox_decrypt_blob(blob: bytes) -> Tuple[bytes, bytes]:
     inbuf = bytearray(blob)
     outbuf = bytearray(len(blob))
-    sid = bytearray(0x10)
     
-    outbuf_len = io_filemgr_bbox_decrypt(inbuf, outbuf, sid)
+    outbuf_len, secure_install_id = io_filemgr_bbox_decrypt(inbuf, outbuf)
     if outbuf_len < 0:
         _raise(outbuf_len, 'BBox: Blob decrypt failed, bad output data')
     
-    return bytes(outbuf[:outbuf_len]), bytes(sid)
+    return bytes(outbuf[:outbuf_len]), bytes(secure_install_id)
