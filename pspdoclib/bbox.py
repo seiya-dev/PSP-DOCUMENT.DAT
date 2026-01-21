@@ -192,12 +192,12 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
 
 # left shift L by 1 (GF(2^128) Rb=0x87)
 def _left_shift_1(block16: bytes) -> bytes:
-    b = bytearray(16)
-    carry = 0
-    for i in reversed(range(16)):
+    b = bytearray(0x10)
+    carry = False
+    for i in reversed(range(0x10)):
         v = block16[i]
         b[i] = ((v << 1) & 0xFF) | carry
-        carry = 1 if (v & 0x80) else 0
+        carry = True if (v & 0x80) else False
     if carry:
         b[15] ^= 0x87
     return bytes(b)
