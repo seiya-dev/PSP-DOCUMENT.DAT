@@ -331,7 +331,7 @@ def BBCipherInit(ckey: CipherKey, type_: int, mode: int, header_key: bytearray, 
             for i in range(16):
                 ckey.key[i] ^= version_key[i]
 
-def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
+def _sub_428_xor_stream(data: bytearray, ckey: CipherKey):
     size = len(data)
     
     if size % 16 != 0:
@@ -383,7 +383,6 @@ def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
     # XOR data
     for i in range(size):
         data[i] ^= keystream[i]
-    return 0
 
 def BBCipherUpdate(ckey: CipherKey, data: bytearray):
     view = memoryview(data)
