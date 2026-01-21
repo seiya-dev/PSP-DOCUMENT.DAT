@@ -555,8 +555,8 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray) -> Tuple[int, b
     if type_ == 2:
         flag = 1
     
-    res = bbox_verify_header(inbuf, bytes(calc_id), flag)
-    if not res:
+    head_ok = bbox_verify_header(inbuf, bytes(calc_id), flag)
+    if not head_ok:
         print('io_filemgr_bbox_decrypt: Header verification failed')
         return -1, calc_id
     
@@ -577,14 +577,14 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray) -> Tuple[int, b
         return -1, calc_id
     
     # check data table mac
-    res = bbox_mac_check(
+    mac_ok = bbox_mac_check(
         bytes(inbuf[table_offset:table_offset + block_num * 0x10]),
         bytes(calc_id),
         bytes(inbuf[0x60:0x70]),
         type_,
     )
     
-    if not res:
+    if not mac_ok:
         print('io_filemgr_bbox_decrypt: Data verification failed')
         return -1, calc_id
     
