@@ -11,7 +11,7 @@ from pspdoclib.hexdump import hexdump
 
 from pspdoclib.bbox import (
     pops_get_secure_install_id,
-    boxbb_mac_gen_enc
+    bbox_mac_gen_enc
 )
 
 ###################

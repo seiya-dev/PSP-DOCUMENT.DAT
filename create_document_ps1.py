@@ -11,7 +11,7 @@ from pathlib import Path
 from Crypto.Cipher import DES
 
 from pspdoclib.bbox import (
-    boxbb_mac_gen_enc
+    bbox_mac_gen_enc
 )
 
 ###################

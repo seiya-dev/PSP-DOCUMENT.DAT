@@ -501,7 +501,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
         dnas_key = _DNAS_KEY2
     
     if dnas_key is None:
-        _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed')
+        _raise(ERROR_INVALID_ARG, 'BBox: Verify header failed, bad DNAS flag')
     
     retv = bbox_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
     if not retv:
@@ -524,7 +524,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
             _raise(ERROR_UNKNOWN_VERSION, 'BBox: Bad PGD version')
         
         if struct.unpack_from('<I', buf, 0x48)[0] != 0x400:
-            _raise(ERROR_INVALID_FORMAT, 'BBox: Bad PGD Packet Size')
+            _raise(ERROR_INVALID_FORMAT, 'BBox: Bad PGD packet size')
     
     return True
 
