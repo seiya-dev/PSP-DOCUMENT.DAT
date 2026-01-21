@@ -191,7 +191,7 @@ def BBMacUpdate(mkey: MACKey, buf: bytes, size: int):
     return
 
 # left shift L by 1 (GF(2^128) Rb=0x87)
-def left_shift_1(block16: bytes) -> bytes:
+def _left_shift_1(block16: bytes) -> bytes:
     b = bytearray(16)
     carry = 0
     for i in reversed(range(16)):
@@ -211,8 +211,8 @@ def BBMacFinal(mkey: MACKey, out16: bytearray, vkey: Optional[bytes]):
     # Step 1: encrypt 16 bytes of zeros to get L
     L = _crypto_cmd_encrypt_iv0(b'\x00' * 16, code)
     
-    K1 = left_shift_1(L)
-    K2 = left_shift_1(K1)
+    K1 = _left_shift_1(L)
+    K2 = _left_shift_1(K1)
     
     # padding
     pad = bytearray(mkey.pad)
@@ -333,6 +333,7 @@ def BBCipherInit(ckey: CipherKey, type_: int, mode: int, header_key: bytearray, 
 
 def _sub_428_xor_stream(data: bytearray, ckey: CipherKey) -> int:
     size = len(data)
+    
     if size % 16 != 0:
         _raise(ERROR_INVALID_ARG, 'cipher update size must be multiple of 16')
     
@@ -520,9 +521,11 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
         bbox_decrypt(segment, 0, secure_install_id, bytes(buf[0x10:0x20]), type_)
         buf[0x30:0x30 + 0x30] = segment
         
+        # version check
         if struct.unpack_from('<I', buf, 0x40)[0] != 0:
             return False
         
+        # blob block size
         if struct.unpack_from('<I', buf, 0x48)[0] != 0x400:
             return False
     
@@ -533,8 +536,6 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
 # ============================================================
 
 def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_out: bytearray) -> int:
-    size = len(inbuf)
-    
     box_type = struct.unpack_from('<I', inbuf, 8)[0]
     if box_type == 0:
         type_ = 2
@@ -568,7 +569,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     table_offset = data_offset + align_size
     block_num = ((align_size + block_size - 1) & ~(block_size - 1)) // block_size
     
-    if (align_size + block_num * 16) > size:
+    if (align_size + block_num * 16) > len(inbuf):
         print('io_filemgr_bbox_decrypt: Invalid data size')
         return -1
     
@@ -600,6 +601,6 @@ def bbox_decrypt_blob(blob: bytes) -> Tuple[bytes, bytes]:
     
     outbuf_len = io_filemgr_bbox_decrypt(inbuf, outbuf, sid)
     if outbuf_len < 0:
-        _raise(outbuf_len, 'BBox: Blob decrypt failed, no output data')
+        _raise(outbuf_len, 'BBox: Blob decrypt failed, bad output data')
     
     return bytes(outbuf[:outbuf_len]), bytes(sid)
