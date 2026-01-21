@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 
 from .ecdsa_psp import PSPECDSA
-from .bbox import decrypt_bbox_blob, BBoxException
+from .bbox import bbox_decrypt_blob, BBoxException
 from .hexdump import hexdump
 
 ###################
@@ -74,7 +74,7 @@ def free_edata(name: str, buf: bytes):
     
     # decrypt
     try:
-        binkey, install_id = decrypt_bbox_blob(pgd_data)
+        binkey, install_id = bbox_decrypt_blob(pgd_data)
     except BBoxException as err:
         print(f'  > [ERROR] Code: {err.code}, MSG: {err}')
         print(f"  > BAD EDAT FILE")

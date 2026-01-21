@@ -522,7 +522,9 @@ def pops_man_doc_check_data(buf: bytes, digest: bytes, secure_install_id: bytes)
 
 def boxbb_decrypt(buf: bytearray, seed: int, vkey: bytes, hdr_key: bytes, type_: int):
     if len(vkey) != 16 or len(hdr_key) != 16:
-        _raise(ERROR_INVALID_ARG, 'boxbb decryption failed')
+        _raise(ERROR_INVALID_ARG, 'BBox: Decryption failed, bad keys size')
+    
+    # print(f'  > HEADER KEY: {" ".join(f"{h:02X}" for h in hdr_key)}')
     
     ckey = CipherKey(type=0, seed=0, key=bytearray(16))
     header_key_ba = bytearray(hdr_key)
@@ -532,18 +534,18 @@ def boxbb_decrypt(buf: bytearray, seed: int, vkey: bytes, hdr_key: bytes, type_:
         BBCipherUpdate(ckey, buf)
         BBCipherFinal(ckey)
     except Exception:
-        _raise(ERROR_BROKEN_DATA, 'boxbb decryption failed')
+        _raise(ERROR_BROKEN_DATA, 'BBox: Decryption failed')
 
 def boxbb_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag: int) -> int:
     if len(buf) < 0x90:
-        _raise(ERROR_INVALID_FORMAT, 'boxbb verify header failed')
+        _raise(ERROR_INVALID_FORMAT, 'BBox: Header minimal size is 0x90 bytes')
     
     if buf[0:4] != b'\0PGD':
-        _raise(ERROR_INVALID_FORMAT, 'boxbb verify header failed')
+        _raise(ERROR_INVALID_FORMAT, 'BBox: Bad PGD magic')
     
     version = struct.unpack_from('<I', buf, 4)[0]
     if version != 1:
-        _raise(ERROR_UNKNOWN_VERSION, 'boxbb verify header failed')
+        _raise(ERROR_UNKNOWN_VERSION, 'BBox: Only version 1 is supported')
     
     box_type = struct.unpack_from('<I', buf, 8)[0]
     type_ = 2
@@ -596,7 +598,7 @@ def boxbb_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag
 # iofilemgr
 # ============================================================
 
-def iofilemgrBBoxDecrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_out: bytearray, verbose: bool = False) -> int:
+def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_out: bytearray) -> int:
     size = len(inbuf)
     
     box_type = struct.unpack_from('<I', inbuf, 8)[0]
@@ -611,8 +613,7 @@ def iofilemgrBBoxDecrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_
     res = get_secure_install_id(bytes(inbuf), type_, calc_id)
     
     if res < 0:
-        if verbose:
-            print('sceIofilemgrDnasDecrypt() cannot get secure install id.')
+        print('o_filemgr_bbox_decrypt cannot get secure install id.')
         return res
     
     secure_install_id_out[:16] = calc_id
@@ -623,8 +624,7 @@ def iofilemgrBBoxDecrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_
     
     res = boxbb_verify_header(inbuf, bytes(calc_id), flag)
     if res < 0:
-        if verbose:
-            print('sceIofilemgrDnasDecrypt() header verification failed.')
+        print('sceIofilemgrDnasDecrypt() header verification failed.')
         return res
     
     # Note:
@@ -671,18 +671,13 @@ def iofilemgrBBoxDecrypt(inbuf: bytearray, outbuf: bytearray, secure_install_id_
 # API
 # ============================================================
 
-def verify_header(blob: bytes, *, secure_install_id: Optional[bytes], flag: int) -> int:
-    bb = bytearray(blob)
-    boxbb_verify_header(bb, secure_install_id, flag)
-    return flag
-
-def decrypt_bbox_blob(blob: bytes, *, verbose: bool = False) -> Tuple[bytes, bytes]:
+def bbox_decrypt_blob(blob: bytes, *) -> Tuple[bytes, bytes]:
     inbuf = bytearray(blob)
     outbuf = bytearray(len(blob))
     sid = bytearray(16)
     
-    res = iofilemgrBBoxDecrypt(inbuf, outbuf, sid, verbose=verbose)
-    if res < 0:
-        _raise(res, 'bbox decrypt failed')
+    outbuf_len = io_filemgr_bbox_decrypt(inbuf, outbuf, sid, verbose=verbose)
+    if outbuf_len <= 0:
+        _raise(outbuf_len, 'BBox: Blob decrypt failed, no output data')
     
-    return bytes(outbuf[:res]), bytes(sid)
+    return bytes(outbuf[:outbuf_len]), bytes(sid)
