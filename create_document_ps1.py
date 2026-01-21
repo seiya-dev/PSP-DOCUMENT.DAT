@@ -21,6 +21,7 @@ DES_IV  = bytes.fromhex('A819C4F5E154E30B')
 
 ID_PATTERN   = re.compile(r"^[A-Za-z]{4}\d{5}$")
 INS_ID_BYTES = re.compile(r"^\s*(?:[0-9A-Fa-f]{2}\s*)+$")
+POPS_VER_KEY = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 
 # NOTE 1: INS_ID (Secure Install ID) can be any for custom PS1 PBP.
 # That Secure Install ID should be stored in KEYS.BIN
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     
     if len(pages) > 0:
         args.gameid = args.gameid if bool(ID_PATTERN.fullmatch(args.gameid)) else 'UNKN00000'
-        args.insid  = bytes.fromhex(args.insid) if bool(INS_ID_BYTES.fullmatch(args.insid)) else bytes(0x10)
+        args.insid  = bytes.fromhex(args.insid) if bool(INS_ID_BYTES.fullmatch(args.insid)) else POPS_VER_KEY
         
         pgd = encrypt_document(args.gameid, args.insid, pages)
         Path(args.document).write_bytes(pgd)
