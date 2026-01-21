@@ -95,7 +95,7 @@ class PS1Doc(object):
             print(f'  > SECURE INSTALL ID: {" ".join(f"{v:02X}" for v in install_id)}')
             
             if header_mac != bytes(0x10):
-                if header_mac != boxbb_mac_gen_enc(header_out, install_id):
+                if header_mac != bbox_mac_gen_enc(header_out, install_id):
                     print(f'  > BAD ENCRYPTED BLOB: DOC HEADER (BB MAC HASH CHECK FAILED)')
                     return None
             
@@ -139,7 +139,7 @@ class PS1Doc(object):
         
         if is_enc == 1:
             if info_mac != bytes(0x10):
-                if info_mac != boxbb_mac_gen_enc(info_block, install_id):
+                if info_mac != bbox_mac_gen_enc(info_block, install_id):
                     print(f'  > BAD ENCRYPTED BLOB: INFO BLOCK (BB MAC HASH CHECK FAILED)')
                     return None
             
@@ -203,7 +203,7 @@ class PS1Doc(object):
                 page_buf  = page_buf[:-0x20]
                 
                 if page_mac != bytes(0x10):
-                    if page_mac != boxbb_mac_gen_enc(page_buf, install_id):
+                    if page_mac != bbox_mac_gen_enc(page_buf, install_id):
                         print(f'  > PAGE {page_index+1:03d} BB MAC HASH MISMATCH')
                         data_buf += page_buf + page_mac + page_hash
                         is_proper_doc = 0

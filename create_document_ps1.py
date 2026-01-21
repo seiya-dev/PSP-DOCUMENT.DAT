@@ -60,7 +60,7 @@ def encrypt_document(gameid, ins_id, pages):
     
     # DOC header
     doc_hdr = desEncrypt(create_header(gameid))
-    pgd_buf += doc_hdr + boxbb_mac_gen_enc(doc_hdr, ins_id) + sha1hash(doc_hdr)
+    pgd_buf += doc_hdr + bbox_mac_gen_enc(doc_hdr, ins_id) + sha1hash(doc_hdr)
     
     # Info Block
     # file data starts at 0x32b8 / 0x1f4b8
@@ -85,7 +85,7 @@ def encrypt_document(gameid, ins_id, pages):
         page_offset += page_len
     
     info_buffer = desEncrypt(info_buffer)
-    pgd_buf += info_buffer + boxbb_mac_gen_enc(info_buffer, ins_id) + sha1hash(info_buffer)
+    pgd_buf += info_buffer + bbox_mac_gen_enc(info_buffer, ins_id) + sha1hash(info_buffer)
     
     # File data
     for i, p in enumerate(pages):
@@ -95,7 +95,7 @@ def encrypt_document(gameid, ins_id, pages):
         struct.pack_into('<I', page_info_head, 0, page_len)
         
         p = desEncrypt(page_info_head) + p
-        pgd_buf += p + boxbb_mac_gen_enc(p, ins_id) + sha1hash(p)
+        pgd_buf += p + bbox_mac_gen_enc(p, ins_id) + sha1hash(p)
     
     return pgd_buf
 

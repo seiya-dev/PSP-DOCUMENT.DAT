@@ -473,7 +473,7 @@ def bbox_decrypt(buf: bytearray, seed: int, vkey: bytes, hdr_key: bytes, type_: 
     BBCipherUpdate(ckey, buf)
     BBCipherFinal(ckey)
 
-def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag: int) -> int:
+def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag: int) -> bool:
     if len(buf) < 0x90:
         _raise(ERROR_INVALID_FORMAT, 'BBox: Header minimal size is 0x90 bytes')
     
@@ -505,7 +505,7 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
     
     retv = bbox_mac_check(bytes(buf[:0x80]), 0x80, dnas_key, bytes(buf[0x80:0x90]), type_)
     if not retv:
-        _raise(ERROR_INVALID_FORMAT, 'BBox: Verify header failed')
+        return False
     
     if secure_install_id is not None:
         if len(secure_install_id) != 16:
@@ -521,10 +521,10 @@ def bbox_verify_header(buf: bytearray, secure_install_id: Optional[bytes], flag:
         buf[0x30:0x30 + 0x30] = segment
         
         if struct.unpack_from('<I', buf, 0x40)[0] != 0:
-            _raise(ERROR_UNKNOWN_VERSION, 'BBox: Bad PGD version')
+            return False
         
         if struct.unpack_from('<I', buf, 0x48)[0] != 0x400:
-            _raise(ERROR_INVALID_FORMAT, 'BBox: Bad PGD packet size')
+            return False
     
     return True
 
@@ -554,7 +554,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     res = bbox_verify_header(inbuf, bytes(calc_id), flag)
     if not res:
         print('io_filemgr_bbox_decrypt: Header verification failed.')
-        return res
+        return -1
     
     # Note:
     # bbox_verify_header decrypted buffer: inbuf[0x30:0x60]
@@ -569,7 +569,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     block_num = ((align_size + block_size - 1) & ~(block_size - 1)) // block_size
     
     if (align_size + block_num * 16) > size:
-        print('io_filemgr_bbox_decrypt: Invalid size')
+        print('io_filemgr_bbox_decrypt: Invalid data size')
         return -1
     
     # check data table mac
@@ -583,7 +583,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     
     if not res:
         print('io_filemgr_bbox_decrypt: Data verification failed')
-        return res
+        return -1
     
     data_region = bytearray(inbuf[0x90:0x90 + align_size])
     bbox_decrypt(data_region, 0, bytes(calc_id), bytes(inbuf[0x30:0x40]), type_)
@@ -599,7 +599,7 @@ def bbox_decrypt_blob(blob: bytes) -> Tuple[bytes, bytes]:
     sid = bytearray(16)
     
     outbuf_len = io_filemgr_bbox_decrypt(inbuf, outbuf, sid)
-    if outbuf_len <= 0:
+    if outbuf_len < 0:
         _raise(outbuf_len, 'BBox: Blob decrypt failed, no output data')
     
     return bytes(outbuf[:outbuf_len]), bytes(sid)
