@@ -541,7 +541,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     if box_type == 1:
         type_ = 1
     if type_ is None:
-        print('io_filemgr_bbox_decrypt: Bad BBox type.')
+        print('io_filemgr_bbox_decrypt: Bad BBox type')
         return -1
     
     calc_id = get_secure_install_id(bytes(inbuf), type_)
@@ -553,7 +553,7 @@ def io_filemgr_bbox_decrypt(inbuf: bytearray, outbuf: bytearray, secure_install_
     
     res = bbox_verify_header(inbuf, bytes(calc_id), flag)
     if not res:
-        print('io_filemgr_bbox_decrypt: Header verification failed.')
+        print('io_filemgr_bbox_decrypt: Header verification failed')
         return -1
     
     # Note:
