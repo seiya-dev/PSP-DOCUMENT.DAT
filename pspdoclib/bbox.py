@@ -430,7 +430,6 @@ def bbox_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     if len(vkey) != 0x10:
         _raise(ERROR_INVALID_ARG, 'version_key must be 16 bytes')
     
-    size = len(buf)
     buf = bytes(buf)
     tmp = bytearray(0x10)
     
