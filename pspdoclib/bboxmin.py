@@ -159,7 +159,7 @@ def pops_get_secure_install_id(buf: bytes) -> bytes:
     
     return id_out
 
-def bbox_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
+def bbox_mac_gen(buf: bytes, vkey: bytes) -> bytes:
     if len(vkey) != 0x10:
         _raise('version_key must be 16 bytes')
     
@@ -167,7 +167,7 @@ def bbox_mac_gen(buf: bytes, vkey: bytes, type_: int) -> bytes:
     tmp = bytearray(0x10)
     
     mkey = MACKey(type=0, key=bytearray(0x10), pad=bytearray(0x10), pad_size=0)
-    BBMacInit(mkey, type_)
+    BBMacInit(mkey)
     BBMacUpdate(mkey, buf)
     BBMacFinal(mkey, tmp, vkey)
     
