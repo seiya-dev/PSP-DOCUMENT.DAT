@@ -176,5 +176,5 @@ def bbox_mac_gen(buf: bytes, vkey: bytes) -> bytes:
 def bbox_mac_gen_enc(buf: bytes, vkey: bytes) -> bytes:
     # POPS only, calculate BB Mac digest using version key (Secure Install ID)
     get_bb_mac = bbox_mac_gen(buf, vkey)
-    get_bb_mac_enc = _crypto_cmd_encrypt_iv0(get_bb_mac, 0x63)
+    get_bb_mac_enc = _encrypt_iv0(get_bb_mac, 0x63)
     return get_bb_mac_enc
