@@ -12,8 +12,11 @@ import io
 import zlib
 import base64
 
+from pathlib import Path
+
 from Crypto.Cipher import AES # pip install pycryptodome
 
+POPS_VER_KEY = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 CID_PATTERN = re.compile(r'^[A-Z]{2}[0-9]{4}-[A-Z]{4}[0-9]{5}_[0-9]{2}-[A-Z0-9]{16}$')
 
 class KeyVault:
@@ -72,29 +75,33 @@ def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
     rif = io.BytesIO()
     
     # start of rif (uint64, little-endian)
-    rif.write(struct.pack("<Q", 0x00))
+    rif.write(struct.pack('<Q', 0x00))
     
     # fake account ID (uint64, little-endian)
-    rif.write(struct.pack("<Q", 0x0123456789ABCDEF))
+    rif.write(struct.pack('<Q', 0x0123456789ABCDEF))
     
     # content ID (C-string padded to 0x30 bytes)
-    content_bytes = content_id.encode("ascii")
+    content_bytes = content_id.encode('ascii')
     if len(content_bytes) > 0x30:
-        raise ValueError("content_id too long")
+        raise ValueError('content_id too long')
     
     rif.write(content_bytes)
-    rif.write(b"\x00" * (0x30 - len(content_bytes)))
+    rif.write(b'\x00' * (0x30 - len(content_bytes)))
     
     # key1 + key2
-    rif.write(b"\x00" * 0x30)
+    rif.write(b'\x00' * 0x30)
     
     # fake ECDSA signature
-    rif.write(b"\xFF" * 0x28)
+    rif.write(b'\xFF' * 0x28)
     
     return rif.getvalue()
 
 def rif_to_zrif(rif: bytes) -> str:
-    return base64.b64encode(zlib.compress(rif, 9)).decode("ascii")
+    return base64.b64encode(zlib.compress(rif, 9)).decode('ascii')
+
+def save_rif(path: str, rif_bytes: bytes) -> None:
+    with open(path, "wb") as f:
+        f.write(rif_bytes)
 
 def parse_args() -> argparse.Namespace:
     print(':: NP DRM VersionKey Generator ::')
@@ -119,8 +126,12 @@ def main() -> None:
     rif_bin = create_no_psp_emu_drm_rif(cid)
     zrif_b64 = rif_to_zrif(rif_bin)
     
-    print('PS1 EBOOT KEY:', keys)
-    print('zRIF STRING  :', zrif_b64)
+    print('PS1 EBOOT DEFKEY:', POPS_VER_KEY.hex().upper())
+    print('PS1 EBOOT CIDKEY:', keys)
+    print('zRIF STRING     :', zrif_b64)
+    
+    Path(f'./out_rif').mkdir(parents=True, exist_ok=True)
+    save_rif(f'./out_rif/{cid}.rif', rif_bin)
 
 if __name__ == '__main__':
     main()
