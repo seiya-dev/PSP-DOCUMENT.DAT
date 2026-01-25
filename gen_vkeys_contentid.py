@@ -15,6 +15,7 @@ import base64
 from pathlib import Path
 
 from Crypto.Cipher import AES # pip install pycryptodome
+from pspdoclib.hexdump import hexdump
 
 POPS_VER_KEY = bytes.fromhex('2E4117A532E6C473717B0F7A6EC0AAA5')
 CID_PATTERN = re.compile(r'^[A-Z]{2}[0-9]{4}-[A-Z]{4}[0-9]{5}_[0-9]{2}-[A-Z0-9]{16}$')
@@ -75,12 +76,15 @@ def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
     rif = io.BytesIO()
     
     # start of rif (uint64, little-endian)
+    # 00 01 00 01 00 00 00 02
     rif.write(struct.pack('<Q', 0x00))
     
     # fake account ID (uint64, little-endian)
+    # EF CD AB 89 67 45 23 01
     rif.write(struct.pack('<Q', 0x0123456789ABCDEF))
     
     # content ID (C-string padded to 0x30 bytes)
+    # UP9000-NPUJ00000_00-0000000000000001
     content_bytes = content_id.encode('ascii')
     if len(content_bytes) > 0x30:
         raise ValueError('content_id too long')
@@ -88,8 +92,11 @@ def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
     rif.write(content_bytes)
     rif.write(b'\x00' * (0x30 - len(content_bytes)))
     
-    # key1 + key2
-    rif.write(b'\x00' * 0x30)
+    # key1 + key2 (?)
+    rif.write(b'\x00' * 0x20)
+    
+    # start time + end time
+    rif.write(b'\x00' * 0x10)
     
     # fake ECDSA signature
     rif.write(b'\xFF' * 0x28)
@@ -98,6 +105,9 @@ def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
 
 def rif_to_zrif(rif: bytes) -> str:
     return base64.b64encode(zlib.compress(rif, 9)).decode('ascii')
+
+def decode_zrif_to_rif(zrif: str) -> bytes:
+    return zlib.decompress(base64.b64decode(zrif))
 
 def save_rif(path: str, rif_bytes: bytes) -> None:
     with open(path, "wb") as f:
@@ -126,12 +136,16 @@ def main() -> None:
     rif_bin = create_no_psp_emu_drm_rif(cid)
     zrif_b64 = rif_to_zrif(rif_bin)
     
+    print('CONTENT ID:     :', cid)
     print('PS1 EBOOT DEFKEY:', POPS_VER_KEY.hex().upper())
     print('PS1 EBOOT CIDKEY:', keys)
     print('zRIF STRING     :', zrif_b64)
     
     Path(f'./out_rif').mkdir(parents=True, exist_ok=True)
     save_rif(f'./out_rif/{cid}.rif', rif_bin)
+    
+    print('\nRIF Data:')
+    print(hexdump(rif_bin),'\n')
 
 if __name__ == '__main__':
     main()
