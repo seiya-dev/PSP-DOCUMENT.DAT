@@ -8,3 +8,4 @@ pyvenv.cfg
 *.edat
 *.bak
 *.bin
+*.rif
