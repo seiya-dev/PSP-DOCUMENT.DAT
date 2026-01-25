@@ -62,7 +62,7 @@ class NoPspEmuDrmMethod:
     def get_version_key(content_id: str, key_index: int):
         vk = bytearray(hashlib.md5(content_id.encode('utf-8')).digest())
         SceNpDrm.transform_version_key(vk, 0, key_index)
-        return (bytes(vk), content_id, key_index)
+        return { 'content_id': content_id, 'key_index': key_index, 'version_key': bytes(vk) }
 
 def parse_args() -> argparse.Namespace:
     print(':: NP DRM VersionKey Generator ::')
@@ -86,8 +86,8 @@ def main() -> None:
     drmkey_psp = NoPspEmuDrmMethod.get_version_key(cid, 2)
     
     print(':: CONTENT ID     :', cid)
-    print(':: VERSION KEY PS1:', drmkey_ps1[0].hex().upper())
-    print(':: VERSION KEY PSP:', drmkey_psp[0].hex().upper())
+    print(':: VERSION KEY PS1:', drmkey_ps1['version_key'].hex().upper())
+    print(':: VERSION KEY PSP:', drmkey_psp['version_key'].hex().upper())
 
 if __name__ == '__main__':
     main()
