@@ -82,12 +82,16 @@ def main() -> None:
         print(f'Invalid content ID format:\n  {cid}', file=sys.stderr)
         sys.exit(1)
     
+    drmkey_tk0 = NoPspEmuDrmMethod.get_version_key(cid, 0)
     drmkey_ps1 = NoPspEmuDrmMethod.get_version_key(cid, 1)
     drmkey_psp = NoPspEmuDrmMethod.get_version_key(cid, 2)
+    drmkey_tk3 = NoPspEmuDrmMethod.get_version_key(cid, 3)
     
-    print(':: CONTENT ID     :', cid)
-    print(':: VERSION KEY PS1:', drmkey_ps1['version_key'].hex().upper())
-    print(':: VERSION KEY PSP:', drmkey_psp['version_key'].hex().upper())
+    print(':: CONTENT ID       :', cid)
+    print(':: VERSION KEY PS1  :', drmkey_ps1['version_key'].hex().upper())
+    print(':: VERSION KEY PSP  :', drmkey_psp['version_key'].hex().upper())
+    #print(':: VERSION KEY TEST1:', drmkey_tk0['version_key'].hex().upper())
+    #print(':: VERSION KEY TEST2:', drmkey_tk3['version_key'].hex().upper())
 
 if __name__ == '__main__':
     main()
