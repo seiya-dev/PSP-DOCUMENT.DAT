@@ -7,6 +7,10 @@ import argparse
 import hashlib
 import re
 import sys
+import struct
+import io
+import zlib
+import base64
 
 from Crypto.Cipher import AES # pip install pycryptodome
 
@@ -62,7 +66,35 @@ class NoPspEmuDrmMethod:
     def get_version_key(content_id: str, key_index: int):
         vk = bytearray(hashlib.md5(content_id.encode('utf-8')).digest())
         SceNpDrm.transform_version_key(vk, 0, key_index)
-        return { 'content_id': content_id, 'key_index': key_index, 'version_key': bytes(vk) }
+        return { 'content_id': content_id, 'key_index': key_index, 'version_key': bytes(vk).hex().upper() }
+
+def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
+    rif = io.BytesIO()
+    
+    # start of rif (uint64, little-endian)
+    rif.write(struct.pack("<Q", 0x00))
+    
+    # fake account ID (uint64, little-endian)
+    rif.write(struct.pack("<Q", 0x0123456789ABCDEF))
+    
+    # content ID (C-string padded to 0x30 bytes)
+    content_bytes = content_id.encode("ascii")
+    if len(content_bytes) > 0x30:
+        raise ValueError("content_id too long")
+    
+    rif.write(content_bytes)
+    rif.write(b"\x00" * (0x30 - len(content_bytes)))
+    
+    # key1 + key2
+    rif.write(b"\x00" * 0x30)
+    
+    # fake ECDSA signature
+    rif.write(b"\xFF" * 0x28)
+    
+    return rif.getvalue()
+
+def rif_to_zrif(rif: bytes) -> str:
+    return base64.b64encode(zlib.compress(rif, 9)).decode("ascii")
 
 def parse_args() -> argparse.Namespace:
     print(':: NP DRM VersionKey Generator ::')
@@ -82,16 +114,13 @@ def main() -> None:
         print(f'Invalid content ID format:\n  {cid}', file=sys.stderr)
         sys.exit(1)
     
-    drmkey_tk0 = NoPspEmuDrmMethod.get_version_key(cid, 0)
-    drmkey_ps1 = NoPspEmuDrmMethod.get_version_key(cid, 1)
-    drmkey_psp = NoPspEmuDrmMethod.get_version_key(cid, 2)
-    drmkey_tk3 = NoPspEmuDrmMethod.get_version_key(cid, 3)
+    keys = NoPspEmuDrmMethod.get_version_key(cid, 1)['version_key']
     
-    print(':: CONTENT ID       :', cid)
-    print(':: VERSION KEY PS1  :', drmkey_ps1['version_key'].hex().upper())
-    print(':: VERSION KEY PSP  :', drmkey_psp['version_key'].hex().upper())
-    #print(':: VERSION KEY TEST1:', drmkey_tk0['version_key'].hex().upper())
-    #print(':: VERSION KEY TEST2:', drmkey_tk3['version_key'].hex().upper())
+    rif_bin = create_no_psp_emu_drm_rif(cid)
+    zrif_b64 = rif_to_zrif(rif_bin)
+    
+    print('PS1 EBOOT KEY:', keys)
+    print('zRIF STRING  :', zrif_b64)
 
 if __name__ == '__main__':
     main()
