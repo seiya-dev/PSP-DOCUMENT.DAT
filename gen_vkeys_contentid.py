@@ -75,30 +75,36 @@ class NoPspEmuDrmMethod:
 def create_no_psp_emu_drm_rif(content_id: str) -> bytes:
     rif = io.BytesIO()
     
-    # start of rif (uint64, little-endian)
-    # 00 01 00 01 00 00 00 02
+    # 0x00-0x07 start of rif (uint64, little-endian)
+    # Version     : 0x00 0x00
+    # Version Flag: 0x00 0x01
+    # DRM Type    : 0x00 0x00
+    # License Flag: 0x00 0x02
     rif.write(struct.pack('<Q', 0x00))
     
-    # fake account ID (uint64, little-endian)
+    # 0x08-0x0F fake account ID (uint64, little-endian)
     # EF CD AB 89 67 45 23 01
     rif.write(struct.pack('<Q', 0x0123456789ABCDEF))
     
-    # content ID (C-string padded to 0x30 bytes)
+    # 0x10-0x3F content ID (C-string padded to 0x30 bytes)
     # UP9000-NPUJ00000_00-0000000000000001
-    content_bytes = content_id.encode('ascii')
-    if len(content_bytes) > 0x30:
-        raise ValueError('content_id too long')
+    content_bytes = content_id.encode('ascii')[0x00:0x30]
     
     rif.write(content_bytes)
     rif.write(b'\x00' * (0x30 - len(content_bytes)))
     
-    # key1 + key2 (?)
+    # 0x40-0x5F
+    # Encrypted Account KeyRing Index
+    # Encrypted RIF Key
     rif.write(b'\x00' * 0x20)
     
-    # start time + end time
+    # 0x60-0x6F
+    # License Start Time
+    # License Expiration Time
     rif.write(b'\x00' * 0x10)
     
-    # fake ECDSA signature
+    # 0x70-0x97
+    # Fake ECDSA Signature
     rif.write(b'\xFF' * 0x28)
     
     return rif.getvalue()
