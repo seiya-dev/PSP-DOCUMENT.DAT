@@ -13,12 +13,7 @@ cut_size = 0x80
 def is_eboot(path):
     return os.path.basename(path).upper() == "EBOOT.PBP"
 
-def search_secure_install_id(in_file):
-    print('\nFile:', in_file)
-    
-    with open(in_file, "rb") as f:
-        data = f.read()
-    
+def search_secure_install_id(data):
     offset = 0
     hits = 0
     
@@ -49,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument('--eboot',  help='Path to EBOOT.PBP file')
     args = parser.parse_args()
     
+    search_secure_install_id(_startdatfooter)
+    
     if not args.eboot:
         print('  > MUST SPECIFY --eboot')
         os._exit(1)
@@ -57,4 +54,8 @@ if __name__ == "__main__":
         print('  > MUST SPECIFY EBOOT.PBP')
         os._exit(1)
     
-    search_secure_install_id(args.eboot)
+    with open(args.eboot, "rb") as f:
+        data = f.read()
+        
+        print('\nFile:', args.eboot)
+        search_secure_install_id(data)
