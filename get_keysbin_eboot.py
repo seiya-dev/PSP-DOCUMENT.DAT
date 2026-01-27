@@ -7,7 +7,7 @@ import struct
 import os
 
 from pspdoclib.hexdump import hexdump
-from pspdoclib.bbox import get_secure_install_id#, bbox_decrypt_blob
+from pspdoclib.bbox import get_secure_install_id, bbox_decrypt_blob
 
 needle = bytes.fromhex('00 50 47 44 01 00 00 00 01 00 00 00 00 00 00 00')
 cut_size = 0x80
@@ -20,6 +20,15 @@ def save_keysbin(path: str, key_bytes: bytes) -> None:
         f.write(key_bytes)
 
 def search_secure_install_id(data):
+    if len(data) < 0x30:
+        return
+    
+    if data[0x0:0x4] != b'\0PBP':
+        return
+    
+    if data[0x4:0x8] not in (b'\0\0\1\0', b'1\0\1\0'):
+        return
+    
     offsets_hex = [
         ('PARAM.SFO', '0x08'),
         ('ICON0.PNG', '0x0C'),
