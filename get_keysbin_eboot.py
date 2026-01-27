@@ -43,7 +43,7 @@ def search_secure_install_id(data):
     for i, (name, off) in enumerate(entries):
         if i + 1 < len(entries) and off == entries[i + 1][1]:
             continue
-        print(f"{name:9} offset = 0x{off:08X} ({off})")
+        print(f"{name:9} offset = 0x{off:08X}")
     
     while True:
         pos = data.find(needle, offset)
