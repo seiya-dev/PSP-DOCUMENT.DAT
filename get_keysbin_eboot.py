@@ -7,7 +7,7 @@ import struct
 import os
 
 from pspdoclib.hexdump import hexdump
-from pspdoclib.bbox import get_secure_install_id
+from pspdoclib.bbox import get_secure_install_id#, bbox_decrypt_blob
 
 needle = bytes.fromhex('00 50 47 44 01 00 00 00 01 00 00 00 00 00 00 00')
 cut_size = 0x80
@@ -62,6 +62,11 @@ def search_secure_install_id(data):
                 print(f'  > PGD FOUND, Hit #{hits} at PSAR offset 0x{pos-psar_off:08X}')
                 
                 keys_bin = get_secure_install_id(chunk, 0)
+                
+                # pgd = bytes(data[pos:])
+                # b1, b2 = bbox_decrypt_blob(pgd)
+                # print(hexdump(b2, pos-psar_off))
+                
                 print(f'  KEY FOUND: {keys_bin.hex().upper()}')
                 
                 if hits == 1:
