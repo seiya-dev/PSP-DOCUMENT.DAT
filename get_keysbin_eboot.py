@@ -54,7 +54,7 @@ def search_secure_install_id(data):
     for i, (name, off) in enumerate(entries):
         if i + 1 < len(entries) and off == entries[i + 1][1]:
             continue
-        size = len(data[off:]) if i+1 == len(entries) else len(data[entries[i][1]:entries[i+1][1]])
+        size = len(data[off:]) if i + 1 == len(entries) else (entries[i+1][1] - off)
         print(f"{name:9} offset = 0x{off:08X}, size = 0x{size:08X}")
         if name == 'DATA.PSAR':
             psar_off = off
