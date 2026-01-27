@@ -13,16 +13,13 @@ needle = bytes.fromhex('00 50 47 44 01 00 00 00 01 00 00 00 00 00 00 00')
 cut_size = 0x80
 
 def is_eboot(path):
-    return os.path.basename(path).upper() == "EBOOT.PBP"
+    return os.path.basename(path).upper() == 'EBOOT.PBP'
 
 def save_keysbin(path: str, key_bytes: bytes) -> None:
     with open(path, 'wb') as f:
         f.write(key_bytes)
 
 def search_secure_install_id(data):
-    offset = 0
-    hits = 0
-    
     offsets_hex = [
         ('PARAM.SFO', '0x08'),
         ('ICON0.PNG', '0x0C'),
@@ -35,6 +32,10 @@ def search_secure_install_id(data):
     ]
     
     entries = []
+    psar_off = 0
+    offset = 0
+    hits = 0
+    
     for name, header_hex in offsets_hex:
         header_off = int(header_hex, 16)
         file_off = struct.unpack_from("<I", data, header_off)[0]
@@ -44,28 +45,32 @@ def search_secure_install_id(data):
         if i + 1 < len(entries) and off == entries[i + 1][1]:
             continue
         print(f"{name:9} offset = 0x{off:08X}")
+        if name == 'DATA.PSAR':
+            psar_off = off
+            offset = off
     
-    while True:
-        pos = data.find(needle, offset)
-        if pos == -1:
-            break
-        
-        chunk = data[pos:pos + cut_size]
-        
-        if len(chunk) >= cut_size:
-            hits += 1
-            print(f'  > Hit #{hits} at offset 0x{pos:08X}')
+    if psar_off > 0:
+        while True:
+            pos = data.find(needle, offset)
+            if pos == -1:
+                break
             
-            keys_bin = get_secure_install_id(chunk, 0)
-            print(f'  KEY FOUND: {keys_bin.hex().upper()}')
+            chunk = data[pos:pos + cut_size]
             
-            if hits == 1:
-                Path(f'./out_key').mkdir(parents=True, exist_ok=True)
-                save_keysbin('./out_key/KEYS.BIN', keys_bin)
-                print('  SAVED to out_key folder!')
-            
-            # move past this match
-            offset = pos + 1
+            if len(chunk) >= cut_size:
+                hits += 1
+                print(f'  > PGD FOUND, Hit #{hits} at PSAR offset 0x{pos-psar_off:08X}')
+                
+                keys_bin = get_secure_install_id(chunk, 0)
+                print(f'  KEY FOUND: {keys_bin.hex().upper()}')
+                
+                if hits == 1:
+                    Path(f'./out_key').mkdir(parents=True, exist_ok=True)
+                    save_keysbin('./out_key/KEYS.BIN', keys_bin)
+                    print('  SAVED to out_key folder!')
+                
+                # move past this match
+                offset = pos + 1
     
     if hits == 0:
         print('\\x00PGD header not found')
@@ -88,5 +93,5 @@ if __name__ == "__main__":
     with open(args.eboot, "rb") as f:
         data = f.read()
         
-        print('\nFile:', args.eboot)
+        print(f'\nFile: ./{Path(args.eboot).parent.name}/EBOOT.PBP')
         search_secure_install_id(data)
