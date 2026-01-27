@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import argparse
+import struct
 import os
 
 from pspdoclib.hexdump import hexdump
@@ -15,12 +16,34 @@ def is_eboot(path):
     return os.path.basename(path).upper() == "EBOOT.PBP"
 
 def save_keysbin(path: str, key_bytes: bytes) -> None:
-    with open(path, "wb") as f:
+    with open(path, 'wb') as f:
         f.write(key_bytes)
 
 def search_secure_install_id(data):
     offset = 0
     hits = 0
+    
+    offsets_hex = [
+        ('PARAM.SFO', '0x08'),
+        ('ICON0.PNG', '0x0C'),
+        ('ICON1.PMF', '0x10'),
+        ('PIC0.PNG',  '0x14'),
+        ('PIC1.PNG',  '0x18'),
+        ('SND0.AT3',  '0x1C'),
+        ('DATA.PSP',  '0x20'),
+        ('DATA.PSAR', '0x24'),
+    ]
+    
+    entries = []
+    for name, header_hex in offsets_hex:
+        header_off = int(header_hex, 16)
+        file_off = struct.unpack_from("<I", data, header_off)[0]
+        entries.append((name, file_off))
+    
+    for i, (name, off) in enumerate(entries):
+        if i + 1 < len(entries) and off == entries[i + 1][1]:
+            continue
+        print(f"{name:9} offset = 0x{off:08X} ({off})")
     
     while True:
         pos = data.find(needle, offset)
