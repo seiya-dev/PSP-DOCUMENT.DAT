@@ -54,15 +54,15 @@ def search_secure_install_id(data):
         
         if len(chunk) >= cut_size:
             hits += 1
-            print(f'Hit #{hits} at offset 0x{pos:08X}')
+            print(f'  > Hit #{hits} at offset 0x{pos:08X}')
             
             keys_bin = get_secure_install_id(chunk, 0)
-            print(f'{hexdump(chunk)} \n\t KEY FOUND: {keys_bin.hex().upper()}')
+            print(f'  KEY FOUND: {keys_bin.hex().upper()}')
             
             if hits == 1:
                 Path(f'./out_key').mkdir(parents=True, exist_ok=True)
                 save_keysbin('./out_key/KEYS.BIN', keys_bin)
-                print('\t SAVED to out_key folder!')
+                print('  SAVED to out_key folder!')
             
             # move past this match
             offset = pos + 1
