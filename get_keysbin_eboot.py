@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from pathlib import Path
 import argparse
 import os
 
@@ -12,6 +13,10 @@ cut_size = 0x80
 
 def is_eboot(path):
     return os.path.basename(path).upper() == "EBOOT.PBP"
+
+def save_keysbin(path: str, key_bytes: bytes) -> None:
+    with open(path, "wb") as f:
+        f.write(key_bytes)
 
 def search_secure_install_id(data):
     offset = 0
@@ -31,6 +36,11 @@ def search_secure_install_id(data):
             keys_bin = get_secure_install_id(chunk, 0)
             print(f'{hexdump(chunk)} \n\t KEY FOUND: {keys_bin.hex().upper()}')
             
+            if hits == 1:
+                Path(f'./out_key').mkdir(parents=True, exist_ok=True)
+                save_keysbin('./out_key/KEYS.BIN', keys_bin)
+                print('\t SAVED to out_key folder!')
+            
             # move past this match
             offset = pos + 1
     
@@ -43,8 +53,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--eboot',  help='Path to EBOOT.PBP file')
     args = parser.parse_args()
-    
-    search_secure_install_id(_startdatfooter)
     
     if not args.eboot:
         print('  > MUST SPECIFY --eboot')
