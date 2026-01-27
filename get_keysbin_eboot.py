@@ -45,6 +45,7 @@ def search_secure_install_id(data):
     offset = 0
     hits = 0
     
+    data_size = len(data)
     for name, header_hex in offsets_hex:
         header_off = int(header_hex, 16)
         file_off = struct.unpack_from("<I", data, header_off)[0]
@@ -53,7 +54,8 @@ def search_secure_install_id(data):
     for i, (name, off) in enumerate(entries):
         if i + 1 < len(entries) and off == entries[i + 1][1]:
             continue
-        print(f"{name:9} offset = 0x{off:08X}")
+        size = len(data[off:]) if i+1 == len(entries) else len(data[entries[i][1]:entries[i+1][1]])
+        print(f"{name:9} offset = 0x{off:08X}, size = 0x{size:08X}")
         if name == 'DATA.PSAR':
             psar_off = off
             offset = off
