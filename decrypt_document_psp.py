@@ -151,6 +151,10 @@ class PSPDoc(object):
         self.data.header.pages_total = 0
         self.data.header.pages_total_ps3 = 0
         
+        if self.data.header.page_limit not in (99, 999):
+            print(f'  > BAD DOC PAGE LIMIT')
+            return None
+        
         metadata_size = 0x32b8 - 0x00a0 - 0x0030
         if self.data.header.page_limit > 99:
             metadata_size = 0x1f4b8 - 0x00a0 - 0x0030
