@@ -86,7 +86,7 @@ class PSPDoc(object):
             self.f_dat = bytearray(self_b_dat)
     
     def readDocData(self):
-        if len(self.f_dat) == 0:
+        if len(self.f_dat) < 0x80:
             return
         
         print(f'\n[:INFO:] Reading: {self.data.file_info.name}_DOCUMENT.DAT')
@@ -96,7 +96,7 @@ class PSPDoc(object):
         
         if len(self.f_edat) > 0:
             print(f'[:INFO:] Reading: {self.data.file_info.name}_DOCINFO.EDAT')
-            if len(self.f_edat) != 0x140:
+            if len(self.f_edat) not in (0x130, 0x140):
                 print('  > BAD DOCINFO.EDAT SIZE!')
                 return None
             
@@ -105,6 +105,7 @@ class PSPDoc(object):
             
             doc_key = free_edata(self.data.file_info.name, self.f_edat)
             if doc_key is not None:
+                print(f'  > \'{self.f_dat[0x10:0x18].hex('-').upper()}\': bytes([{', '.join(f'0x{x:02X}' for x in doc_key)}]),')
                 dec_key = desChangeKey(doc_key)
         
         header = self.f_dat[0x00:0x10]
